@@ -1,1 +1,0 @@
-void manageFile(char * name);

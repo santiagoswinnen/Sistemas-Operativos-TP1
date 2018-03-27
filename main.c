@@ -2,34 +2,20 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <string.h>
-#include "activityAuxiliaries.h"
+#include "application.h"
 
 #define MAX_PATH 1024
+#define MD_LEN 16
 
-int main(int argc, char **argv) {
-    char name[MAX_PATH];
-    DIR * directoryStream;
-    struct dirent * direntStruct;
+int main(int argc, char ** argv) {
+    int ret;
 
-
-    if(argc != 1) {
+    if(argc != 2) {
         printf("Invalid amount of parameters\n");
         exit(0);
+    } else {
+        ret = applicationMain(argv[1]);
     }
-    if((directoryStream = opendir(argv[1])) == NULL) {
-        fprintf(stderr,"Can't open %s\n",argv[1]);
-    }
-    while((direntStruct = readdir(directoryStream)) != NULL) {
-        if(strcmp(direntStruct->d_name,".") == 0 || strcmp(direntStruct->d_name,"..") == 0) {
-            continue;
-            /* TODO: hay que ver como se trata al directorio actual */
-        }
-        if(strlen(argv[1])+strlen(direntStruct->d_name) > sizeof(name)) {
-            fprintf(stderr, "Name %s/%s is too long\n", argv[1], direntStruct->d_name);
-        } else {
-            manageFile(name);
-        }
-    }
-    closedir(directoryStream);
+    return ret;
 
 }
