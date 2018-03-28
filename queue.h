@@ -4,13 +4,15 @@
 #define TP1_QUEUE_H
 
 #endif
-
+#pragma pack(push)
+#pragma pack(1)
 typedef struct queueStruct {
     struct queueElement * first;
     struct queueElement * last;
     int length;
     size_t size;
 } queueStruct;
+#pragma pack(pop)
 
 typedef queueStruct * Queue;
 
