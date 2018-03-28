@@ -22,9 +22,9 @@ typedef struct queueElement {
 
 typedef struct queueElement * Element;
 
-Queue newQueue(void);
+Queue newQueue(size_t size);
 int isEmpty(Queue queue);
 int getSize(Queue queue);
-void enqueue(Queue queue, void * elem, int length);
+void enqueue(Queue queue, void * elem, size_t length);
 void * dequeue(Queue queue);
 

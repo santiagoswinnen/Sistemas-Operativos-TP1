@@ -2,9 +2,10 @@
 #include <string.h>
 #include "queue.h"
 
-Queue newQueue(void) {
+Queue newQueue(size_t size) {
     Queue q = malloc(sizeof(queueStruct));
     q->length = 0;
+    q->size = size;
     return q;
 }
 
@@ -16,7 +17,7 @@ int isEmpty(Queue queue) {
     return queue->length == 0;
 }
 
-void enqueue(Queue queue, void * elem, int elemQty) {
+void enqueue(Queue queue, void * elem, size_t elemQty) {
     size_t assignedMemory = queue->size*elemQty;
     Element newElement = malloc(sizeof(queueElement));
     Element currentLast = queue->last;

@@ -2,5 +2,5 @@
 #include "queue.h"
 
 int applicationMain(int fileNum,char ** files);
-void assignTasks(Queue requests);
+void receiveTask(Queue requests);
 int isFile(const char* file);
