@@ -1,31 +1,37 @@
+#include <stdlib.h>
+#include <dirent.h>
+#include <string.h>
+#include <stdio.h>
+#include <sys/stat.h>
 #include "application.h"
+#include "queue.h"
+#define MD5_LEN 16
 
-int applicationMain(char * path) {
-    char name[MAX_PATH];
-    DIR * directoryStream;
-    struct dirent * direntStruct;
-    /******************************/
-    char * md5buffer[MD_LEN];
-    int bufferSize = 0;
-    /******************************/
+int applicationMain(char ** files) {
+    char ** fileNames;
+    int argIndex = 0;
+    Queue requests = newQueue();
 
-    if((directoryStream = opendir(path)) == NULL) {
-        fprintf(stderr,"Can't open %s\n",path);
-    }
-    while((direntStruct = readdir(directoryStream)) != NULL) {
-        if(strcmp(direntStruct->d_name,".") == 0 || strcmp(direntStruct->d_name,"..") == 0) {
-            continue;
-            /* TODO: hay que ver como se trata al directorio actual */
-        }
-        if(strlen(path)+strlen(direntStruct->d_name) > sizeof(name)) {
-            fprintf(stderr, "Name %s/%s is too long\n", path, direntStruct->d_name);
-        } else {
-            manageFile(name);
+    for(argIndex = 1; files[argIndex] != NULL; argIndex++) {
+        if(isFile(files[argIndex])) {
+            enqueue(requests,files[argIndex]);
         }
     }
-    closedir(directoryStream);
+    assignTasks(requests);
 }
 
-void manageFile(char * name) {
-    /*TODO: aca se tiene que ver a que esclavo mandarle el path actual */
+void assignTasks(Queue requests) {
+    char * md5buffer[MD5_LEN];
+    /*TODO: abrir pipes a los esclavos*/
+    /*TODO: crear una queue de procesos libres (modificar TAD para que sea void *) */
+    while(!isEmpty(requests)) {
+        /*TODO: leer pipes y agregar los libres */
+        /*TODO: hacer dequeue de proceso libre y request y ponerlos a trabajar*/
+    }
+}
+
+int isFile(const char* file) {
+    struct stat buf;
+    stat(file, &buf);
+    return !S_ISDIR(buf.st_mode);
 }
