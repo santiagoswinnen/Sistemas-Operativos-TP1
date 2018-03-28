@@ -26,13 +26,18 @@ void enqueue(Queue queue, char * elem) {
     newElement->previous = currentLast;
     currentLast->next = newElement;
     queue->last = newElement;
+    queue->size++;
 }
 
 char * dequeue(Queue queue) {
+    if(isEmpty(queue)) {
+        return NULL;
+    }
     char * ret;
     Element firstElement = queue->first;
     ret = firstElement->info;
     queue->first = firstElement->next;
+    queue->size--;
     free(firstElement);
     return ret;
 }

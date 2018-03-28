@@ -3,16 +3,17 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include "application.h"
 #include "queue.h"
 #define MD5_LEN 16
 
-int applicationMain(char ** files) {
+int applicationMain(int fileNum, char ** files) {
     char ** fileNames;
     int argIndex = 0;
     Queue requests = newQueue();
 
-    for(argIndex = 1; files[argIndex] != NULL; argIndex++) {
+    for(argIndex = 0; argIndex < fileNum; argIndex++) {
         if(isFile(files[argIndex])) {
             enqueue(requests,files[argIndex]);
         }
@@ -21,7 +22,7 @@ int applicationMain(char ** files) {
 }
 
 void assignTasks(Queue requests) {
-    char * md5buffer[MD5_LEN];
+    char ** md5buffer;
     /*TODO: abrir pipes a los esclavos*/
     /*TODO: crear una queue de procesos libres (modificar TAD para que sea void *) */
     while(!isEmpty(requests)) {
