@@ -4,40 +4,43 @@
 
 Queue newQueue(void) {
     Queue q = malloc(sizeof(queueStruct));
-    q->size = 0;
+    q->length = 0;
     return q;
 }
 
-int getSize(Queue queue) {
-    return queue->size;
+int getLength(Queue queue) {
+    return queue->length;
 }
 
 int isEmpty(Queue queue) {
-    return queue->size == 0;
+    return queue->length == 0;
 }
 
-void enqueue(Queue queue, char * elem) {
+void enqueue(Queue queue, void * elem, int elemQty) {
+    size_t assignedMemory = queue->size*elemQty;
     Element newElement = malloc(sizeof(queueElement));
     Element currentLast = queue->last;
-    strcpy(newElement->info, elem);
-    if(queue->size == 0) {
+    newElement->info = malloc(assignedMemory);
+    memcpy(newElement->info, elem, assignedMemory);
+
+    if(queue->length == 0) {
         queue->first = newElement;
     }
     newElement->previous = currentLast;
     currentLast->next = newElement;
     queue->last = newElement;
-    queue->size++;
+    queue->length++;
 }
 
-char * dequeue(Queue queue) {
+void * dequeue(Queue queue) {
     if(isEmpty(queue)) {
         return NULL;
     }
-    char * ret;
+    void * ret;
     Element firstElement = queue->first;
     ret = firstElement->info;
     queue->first = firstElement->next;
-    queue->size--;
+    queue->length--;
     free(firstElement);
     return ret;
 }
