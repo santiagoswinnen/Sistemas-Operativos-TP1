@@ -10,41 +10,55 @@
 #define MD5_LEN 16
 #define FALSE 0
 #define TRUE 1
-#define SLAVE_NO 10
+#define SLAVE_NUM 10
 
 int applicationMain(int fileNum, char ** files) {
-    int j;
     int i;
+    int j;
+    int k;
+    ssize_t bytesRead;
+    size_t numMessageLen;
+    int allTasksCompleted = FALSE;
     pid_t parentPid = getpid();
-    int fds[SLAVE_NO];
-    char ** pipeNames = generatePipenames(SLAVE_NO);
+    char pipeContent [MD5_LEN];
+    char charMessageLen [3];
+    char ** pipeNames = generatePipenames(SLAVE_NUM);
+    char ** md5 = malloc(fileNum* sizeof(char*));
+    int md5index = 0;
 
-    for(j = 0; (j < SLAVE_NO) && (getpid() == parentPid); j++) {
+    for(j = 0; (j < SLAVE_NUM) && (getpid() == parentPid); j++) {
 
         mkfifo(pipeNames[j],0666);
-        //fds[j] = open(pipeName,O_WRONLY);
-        //close(fds[j]);
         pid_t newPid = fork();
         if(newPid == 0) {
             execl("./slave", pipeNames[j], NULL);
         }
     }
 
-    for(i=0; i < fileNum/2; i++) {
+    for(i = 0; i < fileNum/2; i++) {
         if(isFile(files[i])) {
-            int fd = open(pipeNames[i%SLAVE_NO],O_WRONLY);
-            write(fd,files[i],(strlen(files[i])+1)* sizeof(char));
-            close(fd);
+            sendTaskToSlave(pipeNames[i%SLAVE_NUM],files[i]);
         }
     }
 
-    while("Los pipes no esten todos vacios") {
-        if(i<fileNum) {
-            "Mando nuevos a hashear";
+    while(!allTasksCompleted) {
+        allTasksCompleted = TRUE;
+        for(k = 0; k < SLAVE_NUM; k++) {
+            bytesRead = readPipe(pipeNames[k], charMessageLen, 3);
+            if(bytesRead == 3) {  //Lee primero la longitud del proximo mensaje y despues el mensaje
+                numMessageLen = (size_t)atoi(charMessageLen); // NOLINT
+                readPipe(pipeNames[k], pipeContent, numMessageLen);
+                md5[md5index] = malloc(MD5_LEN * sizeof(char));
+                strcpy(md5[md5index++], pipeContent);
+                allTasksCompleted = FALSE;
+            } else if (bytesRead == 1 && i < fileNum) { //Lee el byte que indica que esta libre
+                sendTaskToSlave(pipeNames[k],files[i++]);
+                allTasksCompleted = FALSE;
+            } else if (bytesRead == 1) {
+                endSlave(pipeNames[k]);
+            }
         }
-
     }
-
 }
 
 int isFile(const char* file) {
@@ -66,3 +80,25 @@ char ** generatePipenames(int slaves) {
     }
     return ret;
 }
+
+void sendTaskToSlave(char * pipeName, char * file) {
+    int fd = open(pipeName,O_WRONLY);
+    write(fd,file,(strlen(file)+1)*sizeof(char));
+    close(fd);
+}
+
+ssize_t readPipe(char * pipeName, char * receiver, size_t length) {
+    int fd = open(pipeName,O_RDONLY);
+    ssize_t bytesRead = read(fd,receiver,length);
+    close(fd);
+    return bytesRead;
+}
+
+void endSlave(char * pipeName) {
+    char * endMessage = malloc(sizeof(char));
+    endMessage[0] = ':';
+    int fd = open(pipeName,O_WRONLY);
+    write(fd,endMessage ,sizeof(char));
+    close(fd);
+}
+
