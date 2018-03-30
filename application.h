@@ -2,8 +2,8 @@
 #include "queue.h"
 
 int applicationMain(int fileNum,char ** files);
-void sendTaskToSlave(char * pipeName, char * file);
-ssize_t readPipe(char * pipeName, char * receiver, size_t length);
+void manageChildren(int fileNum, char ** files, char ** pipeNames);
+void createSlaves(int parentPid, char ** pipeNames);
 void endSlave(char * pipeName);
-char ** generatePipenames(int slaves);
+char ** generatePipeNames(int slaves);
 int isFile(const char* file);

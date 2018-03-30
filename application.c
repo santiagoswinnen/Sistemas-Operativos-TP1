@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include "application.h"
 #include "queue.h"
+#include "pipeUtilities.h"
+
 #define MD5_LEN 16
 #define FALSE 0
 #define TRUE 1
@@ -14,47 +16,56 @@
 
 int applicationMain(int fileNum, char ** files) {
     int i;
-    int j;
-    int k;
+    pid_t parentPid = getpid();
+    char ** pipeNames;
+
+    pipeNames = generatePipeNames(SLAVE_NUM);
+    createSlaves(parentPid,pipeNames);
+    for(i = 0; i < fileNum/2; i++) {
+        if(isFile(files[i])) {
+            writePipe(pipeNames[i%SLAVE_NUM],files[i]);
+        }
+    }
+    manageChildren(fileNum, files, pipeNames);
+
+
+}
+void createSlaves(int parentPid, char ** pipeNames) {
+    int i;
+
+    for(i = 0; (i < SLAVE_NUM) && (getpid() == parentPid); i++) {
+        mkfifo(pipeNames[i],0666);
+        pid_t newPid = fork();
+        if(newPid == 0) {
+            execl("./slave", pipeNames[i], NULL);
+        }
+    }
+}
+
+void manageChildren(int fileNum, char ** files, char ** pipeNames) {
     ssize_t bytesRead;
     size_t messageLength;
     int allTasksCompleted = FALSE;
-    pid_t parentPid = getpid();
+    int i;
     char pipeContent [MD5_LEN];
-    char ** pipeNames = generatePipenames(SLAVE_NUM);
     char ** md5 = malloc(fileNum* sizeof(char*));
     int md5index = 0;
 
-    for(j = 0; (j < SLAVE_NUM) && (getpid() == parentPid); j++) {
-
-        mkfifo(pipeNames[j],0666);
-        pid_t newPid = fork();
-        if(newPid == 0) {
-            execl("./slave", pipeNames[j], NULL);
-        }
-    }
-
-    for(i = 0; i < fileNum/2; i++) {
-        if(isFile(files[i])) {
-            sendTaskToSlave(pipeNames[i%SLAVE_NUM],files[i]);
-        }
-    }
-
     while(!allTasksCompleted) {
         allTasksCompleted = TRUE;
-        for(k = 0; k < SLAVE_NUM; k++) {
-            bytesRead = readPipe(pipeNames[k], pipeContent, 3*sizeof(char));
-            if(bytesRead == 3) {  //Lee primero la longitud del proximo mensaje y despues el mensaje
+        for(i = 0; i < SLAVE_NUM; i++) {
+            bytesRead = readPipe(pipeNames[i], pipeContent, 3*sizeof(char));
+            if(bytesRead == 3) {
                 messageLength = (size_t)atoi(pipeContent); // NOLINT
-                readPipe(pipeNames[k], pipeContent, messageLength);
+                readPipe(pipeNames[i], pipeContent, messageLength);
                 md5[md5index] = malloc(MD5_LEN * sizeof(char));
                 strcpy(md5[md5index++], pipeContent);
                 allTasksCompleted = FALSE;
-            } else if (bytesRead == 1 && i < fileNum) { //Lee el byte que indica que esta libre
-                sendTaskToSlave(pipeNames[k],files[i++]);
+            } else if (bytesRead == 1 && i < fileNum) {
+                writePipe(pipeNames[i],files[i++]);
                 allTasksCompleted = FALSE;
             } else if (bytesRead == 1) {
-                endSlave(pipeNames[k]);
+                endSlave(pipeNames[i]);
             }
         }
     }
@@ -62,14 +73,16 @@ int applicationMain(int fileNum, char ** files) {
 
 int isFile(const char* file) {
     struct stat buf;
+
     stat(file, &buf);
     return !S_ISDIR(buf.st_mode);
 }
 
-char ** generatePipenames(int slaves) {
+char ** generatePipeNames(int slaves) {
     char pipeName [11] = "pipeData";
     char ** ret = malloc(slaves* sizeof(char*));
     int i;
+
     for(i = 0; i < slaves; i++) {
         pipeName[9] = (char)(i/10);
         pipeName[10] = (char)(i%10);
@@ -80,23 +93,12 @@ char ** generatePipenames(int slaves) {
     return ret;
 }
 
-void sendTaskToSlave(char * pipeName, char * file) {
-    int fd = open(pipeName,O_WRONLY);
-    write(fd,file,(strlen(file)+1)*sizeof(char));
-    close(fd);
-}
-
-ssize_t readPipe(char * pipeName, char * receiver, size_t length) {
-    int fd = open(pipeName,O_RDONLY);
-    ssize_t bytesRead = read(fd,receiver,length);
-    close(fd);
-    return bytesRead;
-}
-
 void endSlave(char * pipeName) {
-    char * endMessage = malloc(sizeof(char));
+    char * endMessage;
+    int fd = open(pipeName,O_WRONLY);;
+
+    endMessage = malloc(sizeof(char));
     endMessage[0] = ':';
-    int fd = open(pipeName,O_WRONLY);
     write(fd,endMessage ,sizeof(char));
     close(fd);
 }
