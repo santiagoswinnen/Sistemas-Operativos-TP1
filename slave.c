@@ -44,5 +44,24 @@ void tellMasterImFree(char * pipeName) {
 
 char * md5hash(char * fileName, int length) {
     //TODO: Calcular el MD5 y traerlo
+    pid_t pid;
+    int status;
+    char * md5 = malloc(32);
+    char fileNameConsumer[length]; //guarda el filename que md5sum deja en el buffer
+    int fds[] = {-1, -1};
+    pipe(fds);
+    pid = fork();
+    if(pid == 0) {
+        close(fds[0]);
+        dup2(fds[1], 1); // 1 == stdout
+        char * args = {"md5sum", fileName, NULL};
+        execvp("md5sum", args);
+        perror("Could not run md5sum.\n");
+    }
+    close(fds[1]);
+    dup2(fds[0], 0); // 0 == stdin
+    scanf("%s  %s", md5, fileNameConsumer); 
+    while(wait(&status) > 0);
+    return md5;
 }
 
