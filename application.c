@@ -17,11 +17,10 @@ int applicationMain(int fileNum, char ** files) {
     int j;
     int k;
     ssize_t bytesRead;
-    size_t numMessageLen;
+    size_t messageLength;
     int allTasksCompleted = FALSE;
     pid_t parentPid = getpid();
     char pipeContent [MD5_LEN];
-    char charMessageLen [3];
     char ** pipeNames = generatePipenames(SLAVE_NUM);
     char ** md5 = malloc(fileNum* sizeof(char*));
     int md5index = 0;
@@ -44,10 +43,10 @@ int applicationMain(int fileNum, char ** files) {
     while(!allTasksCompleted) {
         allTasksCompleted = TRUE;
         for(k = 0; k < SLAVE_NUM; k++) {
-            bytesRead = readPipe(pipeNames[k], charMessageLen, 3);
+            bytesRead = readPipe(pipeNames[k], pipeContent, 3*sizeof(char));
             if(bytesRead == 3) {  //Lee primero la longitud del proximo mensaje y despues el mensaje
-                numMessageLen = (size_t)atoi(charMessageLen); // NOLINT
-                readPipe(pipeNames[k], pipeContent, numMessageLen);
+                messageLength = (size_t)atoi(pipeContent); // NOLINT
+                readPipe(pipeNames[k], pipeContent, messageLength);
                 md5[md5index] = malloc(MD5_LEN * sizeof(char));
                 strcpy(md5[md5index++], pipeContent);
                 allTasksCompleted = FALSE;
@@ -101,4 +100,6 @@ void endSlave(char * pipeName) {
     write(fd,endMessage ,sizeof(char));
     close(fd);
 }
+
+
 
