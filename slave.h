@@ -6,4 +6,5 @@
 #endif //TP1_SLAVE_H
 
 char * md5hash(char * fileName, int length);
+char * newReturningPipe(const char * pipeNumber);
 void tellMasterImFree(char * pipeName);

@@ -12,21 +12,24 @@
 #define MD5_LEN 16
 #define FALSE 0
 #define TRUE 1
-#define SLAVE_NUM 10
+#define SLAVE_NUM 1
 
 int applicationMain(int fileNum, char ** files) {
     int i;
     pid_t parentPid = getpid();
     char ** pipeNames;
+    char ** returningPipeNames;
 
     pipeNames = generatePipeNames(SLAVE_NUM);
+    returningPipeNames = generateReturningPipeNames(SLAVE_NUM);
+
     createSlaves(parentPid,pipeNames);
     for(i = 0; i < fileNum/2; i++) {
         if(isFile(files[i])) {
             writePipe(pipeNames[i%SLAVE_NUM],files[i]);
         }
     }
-    manageChildren(fileNum, files, pipeNames);
+    manageChildren(fileNum, files, pipeNames, returningPipeNames);
 
 
 }
@@ -37,12 +40,12 @@ void createSlaves(int parentPid, char ** pipeNames) {
         mkfifo(pipeNames[i],0666);
         pid_t newPid = fork();
         if(newPid == 0) {
-            execl("./slave", pipeNames[i], NULL);
+            execl("./slave", "./slave", pipeNames[i], (char *)NULL);
         }
     }
 }
 
-void manageChildren(int fileNum, char ** files, char ** pipeNames) {
+void manageChildren(int fileNum, char ** files, char ** pipeNames, char ** returningPipeNames) {
     ssize_t bytesRead;
     size_t messageLength;
     int allTasksCompleted = FALSE;
@@ -54,10 +57,10 @@ void manageChildren(int fileNum, char ** files, char ** pipeNames) {
     while(!allTasksCompleted) {
         allTasksCompleted = TRUE;
         for(i = 0; i < SLAVE_NUM; i++) {
-            bytesRead = readPipe(pipeNames[i], pipeContent, 3*sizeof(char));
+            bytesRead = readPipe(returningPipeNames[i], pipeContent, 3*sizeof(char));
             if(bytesRead == 3) {
                 messageLength = (size_t)atoi(pipeContent); // NOLINT
-                readPipe(pipeNames[i], pipeContent, messageLength);
+                readPipe(returningPipeNames[i], pipeContent, messageLength);
                 md5[md5index] = malloc(MD5_LEN * sizeof(char));
                 strcpy(md5[md5index++], pipeContent);
                 allTasksCompleted = FALSE;
@@ -79,14 +82,29 @@ int isFile(const char* file) {
 }
 
 char ** generatePipeNames(int slaves) {
-    char pipeName [11] = "pipeData";
+    char pipeName [7] = "pipe";
     char ** ret = malloc(slaves* sizeof(char*));
     int i;
 
     for(i = 0; i < slaves; i++) {
-        pipeName[9] = (char)(i/10);
-        pipeName[10] = (char)(i%10);
-        pipeName[11] = 0;
+        pipeName[4] = (char)('0'+i/10);
+        pipeName[5] = (char)('0'+i%10);
+        pipeName[6] = 0;
+        ret[i] = malloc(sizeof(char)*11);
+        strcpy(ret[i],pipeName);
+    }
+    return ret;
+}
+
+char ** generateReturningPipeNames(int slaves) {
+    char pipeName [10] = "retPipe";
+    char ** ret = malloc(slaves* sizeof(char*));
+    int i;
+
+    for(i = 0; i < slaves; i++) {
+        pipeName[7] = (char)('0'+i/10);
+        pipeName[8] = (char)('0'+i%10);
+        pipeName[9] = 0;
         ret[i] = malloc(sizeof(char)*11);
         strcpy(ret[i],pipeName);
     }

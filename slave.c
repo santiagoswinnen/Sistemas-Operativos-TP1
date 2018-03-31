@@ -3,6 +3,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
 #include "slave.h"
 #include "pipeUtilities.h"
 
@@ -17,17 +19,25 @@ int main(int argc, char * argv []) {
     int bytesRead;
     int endSignalReceived = FALSE;
     int bytesToRead;
+    char * pipeNumber = argv[1] + 4* sizeof(char);
+    char * returningPipeName = newReturningPipe(pipeNumber);
+
 
     do {
-        bytesRead = (int)readPipe(pipeName,pipeData,3*sizeof(char));
+        bytesRead = (int)readPipe(pipeName,pipeData,3);
+        printf("Leo longitud: %s\n", pipeData);
         if(bytesRead == 1 && pipeData[0] == ':') {
             endSignalReceived = TRUE;
         } else if(bytesRead == 3){
             bytesToRead = atoi(pipeData);
+            printf("BYTES TO READ: %d\n", bytesToRead);
             readPipe(pipeName,pipeData,(size_t)bytesToRead);
-            md5hash(pipeData, bytesRead);
-            writePipe(pipeName,pipeData);
+            printf("Recibi un file para procesar! Se llama %s\n", pipeData);
+            //md5hash(pipeData, bytesRead);
+            //printf("%s\n", pipeData);
+            //writePipe(returningPipeName,pipeData);
         } else {
+            printf("Lei %d bytes: %s\n",bytesRead, pipeData);
             tellMasterImFree(pipeName);
         }
     } while(!endSignalReceived);
@@ -43,25 +53,41 @@ void tellMasterImFree(char * pipeName) {
 }
 
 char * md5hash(char * fileName, int length) {
-    //TODO: Calcular el MD5 y traerlo
     pid_t pid;
     int status;
     char * md5 = malloc(32);
     char fileNameConsumer[length]; //guarda el filename que md5sum deja en el buffer
     int fds[] = {-1, -1};
+
     pipe(fds);
     pid = fork();
     if(pid == 0) {
         close(fds[0]);
         dup2(fds[1], 1); // 1 == stdout
-        char * args = {"md5sum", fileName, NULL};
+        char *   args [3] = {"md5sum", fileName, NULL};
         execvp("md5sum", args);
         perror("Could not run md5sum.\n");
     }
     close(fds[1]);
     dup2(fds[0], 0); // 0 == stdin
-    scanf("%s  %s", md5, fileNameConsumer); 
     while(wait(&status) > 0);
+    scanf("%s  %s", md5, fileNameConsumer); 
+
     return md5;
 }
+
+char * newReturningPipe(const char * pipeNumber) {
+    char pipeName [10] = "retPipe";
+    char * ret;
+
+    pipeName[7] = pipeNumber[0];
+    pipeName[8] = pipeNumber[1];
+    pipeName[9] = 0;
+    ret = malloc(sizeof(char)*10);
+    strcpy(ret,pipeName);
+    mkfifo(ret,0666);
+    return ret;
+}
+
+
 

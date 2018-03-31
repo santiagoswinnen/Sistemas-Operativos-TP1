@@ -8,6 +8,6 @@
 
 #endif //TP1_PIPEUTILITIES_H
 
-ssize_t readPipe(char * pipeName, char * receiver, size_t length);
+ssize_t readPipe(char * pipeName, char * receiver, size_t length, int fd);
 void writePipe(char * pipeName, char * file);
 char * numberToThreeDigitArray(size_t num);

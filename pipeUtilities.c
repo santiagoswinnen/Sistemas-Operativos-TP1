@@ -20,19 +20,21 @@ ssize_t readPipe(char * pipeName, char * receiver, size_t length) {
 
 void writePipe(char * pipeName, char * file) {
     int fd = open(pipeName,O_WRONLY);
-    size_t messageLength = strlen(file);
+    size_t messageLength;
+    messageLength = strlen(file);
 
-    char lengthInChars [3];
-    strcpy(lengthInChars, numberToThreeDigitArray(messageLength));
-    write(fd,lengthInChars,3*sizeof(char));
-    write(fd,file,(strlen(file)+1)*sizeof(char));
+    char lengthInChars [4];
+    strcpy(lengthInChars, numberToThreeDigitArray(messageLength+1));
+    write(fd,lengthInChars,strlen(lengthInChars));
+    write(fd,file,strlen(file));
     close(fd);
 }
 
 char * numberToThreeDigitArray(size_t num) {
-    char * ret = malloc(3* sizeof(char));
+    char * ret = malloc(4* sizeof(char));
     ret[0] = (char) ('0' + num/100);
     ret[1] = (char) ('0' + num/10);
     ret[2] = (char) ('0' + num%10);
+    ret[3] = 0;
     return ret;
 }
