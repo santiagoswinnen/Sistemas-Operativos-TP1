@@ -45,6 +45,7 @@ void createSlaves(int parentPid, char ** outgoingPipeNames,char ** incomingPipeN
 
     for(i = 0; (i < SLAVE_NUM) && (getpid() == parentPid); i++) {
         mkfifo(outgoingPipeNames[i],0666);
+        mkfifo(incomingPipeNames[i],0666);
         pid_t newPid = fork();
         if(newPid == 0) {
             printf("Creando esclavos\n");

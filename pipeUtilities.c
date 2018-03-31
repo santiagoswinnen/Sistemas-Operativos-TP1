@@ -28,16 +28,15 @@ ssize_t readPipe(int fd, char * receiver, size_t length) {
     ssize_t  bytesRead;
 
     bytesRead = read(fd,receiver,length);
-    close(fd);
     return bytesRead;
 }
 
 void writePipe(int fd, char * file) {
     size_t messageLength;
     messageLength = strlen(file);
+    char * lengthInChars = malloc(4*sizeof(char));
 
-    char lengthInChars [4];
-    strcpy(lengthInChars, numberToThreeDigitArray(messageLength+1));
+    strcpy(lengthInChars, numberToThreeDigitArray(messageLength));
     write(fd,lengthInChars,strlen(lengthInChars));
     write(fd,file,strlen(file));
 }

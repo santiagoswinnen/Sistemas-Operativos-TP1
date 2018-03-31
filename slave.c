@@ -21,7 +21,7 @@ int main(int argc, char * argv []) {
     char pipeData[MAX_FILENAME];
     int bytesRead;
     int endSignalReceived = FALSE;
-    int bytesToRead;
+    size_t bytesToRead;
     char * incomingPipeName = argv[1];
     char * outgoingPipeName = argv[2];
 
@@ -35,10 +35,10 @@ int main(int argc, char * argv []) {
         if(bytesRead == 1 && pipeData[0] == ':') {
             endSignalReceived = TRUE;
         } else if(bytesRead == 3){
-            bytesToRead = atoi(pipeData);
-            printf("BYTES TO READ: %d\n", bytesToRead);
-            readPipe(incomingPipeFd,pipeData,(size_t)bytesToRead);
-            printf("Recibi un file para procesar! Se llama %s\n", pipeData);
+            bytesToRead = (size_t)atoi(pipeData);
+            printf("Antes de leer el file. Se llama  %s y tengo que leer %d\n",pipeData, (int)bytesToRead);
+            bytesRead = (int)readPipe(incomingPipeFd,pipeData,bytesToRead);
+            printf("Despues de leer el file. Se llama %s y lei %d\n", pipeData, bytesRead);
             //md5hash(pipeData, bytesRead);
             //printf("%s\n", pipeData);
             //writePipe(outgoingPipeName,pipeData);
