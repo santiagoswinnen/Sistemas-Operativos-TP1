@@ -16,43 +16,45 @@
 #define MD5_BYTES 32
 
 int main(int argc, char * argv []) {
-    char pipeName [11];
-    strcpy(pipeName,argv[1]);
+    int incomingPipeFd;
+    int outgoingPipeFd;
     char pipeData[MAX_FILENAME];
     int bytesRead;
     int endSignalReceived = FALSE;
     int bytesToRead;
-    char * pipeNumber = argv[1] + 4* sizeof(char);
-    char * returningPipeName = newReturningPipe(pipeNumber);
+    char * incomingPipeName = argv[1];
+    char * outgoingPipeName = argv[2];
+
+    incomingPipeFd = open(incomingPipeName,O_RDONLY);
+    outgoingPipeFd = open(outgoingPipeName,O_WRONLY);
 
 
     do {
-        bytesRead = (int)readPipe(pipeName,pipeData,3);
+        bytesRead = (int)readPipe(incomingPipeFd,pipeData,3);
         printf("Leo longitud: %s\n", pipeData);
         if(bytesRead == 1 && pipeData[0] == ':') {
             endSignalReceived = TRUE;
         } else if(bytesRead == 3){
             bytesToRead = atoi(pipeData);
             printf("BYTES TO READ: %d\n", bytesToRead);
-            readPipe(pipeName,pipeData,(size_t)bytesToRead);
+            readPipe(incomingPipeFd,pipeData,(size_t)bytesToRead);
             printf("Recibi un file para procesar! Se llama %s\n", pipeData);
             //md5hash(pipeData, bytesRead);
             //printf("%s\n", pipeData);
-            //writePipe(returningPipeName,pipeData);
+            //writePipe(outgoingPipeName,pipeData);
         } else {
             printf("Lei %d bytes: %s\n",bytesRead, pipeData);
-            tellMasterImFree(pipeName);
+            tellMasterImFree(outgoingPipeFd);
         }
     } while(!endSignalReceived);
-
+    close(incomingPipeFd);
+    close(outgoingPipeFd);
 }
 
-void tellMasterImFree(char * pipeName) {
+void tellMasterImFree(int fd) {
     char message [1];
     message[0] = 1;
-    int fd = open(pipeName,O_WRONLY);
     write(fd,message,1);
-    close(fd);
 }
 
 char * md5hash(char * fileName, int length) {
@@ -77,19 +79,6 @@ char * md5hash(char * fileName, int length) {
     scanf("%s  %s", md5, fileNameConsumer); 
 
     return md5;
-}
-
-char * newReturningPipe(const char * pipeNumber) {
-    char pipeName [10] = "retPipe";
-    char * ret;
-
-    pipeName[7] = pipeNumber[0];
-    pipeName[8] = pipeNumber[1];
-    pipeName[9] = 0;
-    ret = malloc(sizeof(char)*10);
-    strcpy(ret,pipeName);
-    mkfifo(ret,0666);
-    return ret;
 }
 
 

@@ -13,39 +13,48 @@
 #define FALSE 0
 #define TRUE 1
 #define SLAVE_NUM 1
+#define READ 1
+#define WRITE 0
 
 int applicationMain(int fileNum, char ** files) {
     int i;
     pid_t parentPid = getpid();
-    char ** pipeNames;
-    char ** returningPipeNames;
+    char ** outgoingPipeNames;
+    char ** incomingPipeNames;
+    int * outgoingPipesFd;
+    int * incomingPipesFd;
 
-    pipeNames = generatePipeNames(SLAVE_NUM);
-    returningPipeNames = generateReturningPipeNames(SLAVE_NUM);
+    outgoingPipeNames = generateOutgoingPipeNames(SLAVE_NUM);
+    incomingPipeNames = generateIncomingPipeNames(SLAVE_NUM);
+    createSlaves(parentPid,outgoingPipeNames,incomingPipeNames);
+    outgoingPipesFd = openPipes(outgoingPipeNames,SLAVE_NUM, WRITE);
+    incomingPipesFd = openPipes(incomingPipeNames,SLAVE_NUM ,READ);
 
-    createSlaves(parentPid,pipeNames);
     for(i = 0; i < fileNum/2; i++) {
         if(isFile(files[i])) {
-            writePipe(pipeNames[i%SLAVE_NUM],files[i]);
+            int pipeNum = i%SLAVE_NUM;
+            writePipe(outgoingPipesFd[pipeNum], files[i]);
         }
     }
-    manageChildren(fileNum, files, pipeNames, returningPipeNames);
-
-
+    manageChildren(fileNum, files, outgoingPipesFd, incomingPipesFd);
+    closePipes(incomingPipesFd, SLAVE_NUM);
+    closePipes(outgoingPipesFd, SLAVE_NUM);
 }
-void createSlaves(int parentPid, char ** pipeNames) {
+
+void createSlaves(int parentPid, char ** outgoingPipeNames,char ** incomingPipeNames) {
     int i;
 
     for(i = 0; (i < SLAVE_NUM) && (getpid() == parentPid); i++) {
-        mkfifo(pipeNames[i],0666);
+        mkfifo(outgoingPipeNames[i],0666);
         pid_t newPid = fork();
         if(newPid == 0) {
-            execl("./slave", "./slave", pipeNames[i], (char *)NULL);
+            printf("Creando esclavos\n");
+            execl("./slave", "./slave", outgoingPipeNames[i], incomingPipeNames[i], (char *)NULL);
         }
     }
 }
 
-void manageChildren(int fileNum, char ** files, char ** pipeNames, char ** returningPipeNames) {
+void manageChildren(int fileNum, char ** files, int * pipesFd, int * incomingPipesFd) {
     ssize_t bytesRead;
     size_t messageLength;
     int allTasksCompleted = FALSE;
@@ -57,18 +66,18 @@ void manageChildren(int fileNum, char ** files, char ** pipeNames, char ** retur
     while(!allTasksCompleted) {
         allTasksCompleted = TRUE;
         for(i = 0; i < SLAVE_NUM; i++) {
-            bytesRead = readPipe(returningPipeNames[i], pipeContent, 3*sizeof(char));
+            bytesRead = readPipe(incomingPipesFd[i], pipeContent, 3*sizeof(char));
             if(bytesRead == 3) {
                 messageLength = (size_t)atoi(pipeContent); // NOLINT
-                readPipe(returningPipeNames[i], pipeContent, messageLength);
+                readPipe(incomingPipesFd[i], pipeContent, messageLength);
                 md5[md5index] = malloc(MD5_LEN * sizeof(char));
                 strcpy(md5[md5index++], pipeContent);
                 allTasksCompleted = FALSE;
             } else if (bytesRead == 1 && i < fileNum) {
-                writePipe(pipeNames[i],files[i++]);
+                writePipe(pipesFd[i],files[i++]);
                 allTasksCompleted = FALSE;
             } else if (bytesRead == 1) {
-                endSlave(pipeNames[i]);
+                endSlave(pipesFd[i]);
             }
         }
     }
@@ -81,7 +90,7 @@ int isFile(const char* file) {
     return !S_ISDIR(buf.st_mode);
 }
 
-char ** generatePipeNames(int slaves) {
+char ** generateOutgoingPipeNames(int slaves) {
     char pipeName [7] = "pipe";
     char ** ret = malloc(slaves* sizeof(char*));
     int i;
@@ -96,7 +105,7 @@ char ** generatePipeNames(int slaves) {
     return ret;
 }
 
-char ** generateReturningPipeNames(int slaves) {
+char ** generateoIncomingPipeNames(int slaves) {
     char pipeName [10] = "retPipe";
     char ** ret = malloc(slaves* sizeof(char*));
     int i;
@@ -111,14 +120,12 @@ char ** generateReturningPipeNames(int slaves) {
     return ret;
 }
 
-void endSlave(char * pipeName) {
+void endSlave(int fd) {
     char * endMessage;
-    int fd = open(pipeName,O_WRONLY);;
 
     endMessage = malloc(sizeof(char));
     endMessage[0] = ':';
     write(fd,endMessage ,sizeof(char));
-    close(fd);
 }
 
 

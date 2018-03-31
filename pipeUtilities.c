@@ -9,8 +9,22 @@
 #include <string.h>
 #include "pipeUtilities.h"
 
-ssize_t readPipe(char * pipeName, char * receiver, size_t length) {
-    int fd = open(pipeName,O_RDONLY);
+int * openPipes(char ** pipeNames, int amount, int read) {
+    int i;
+    int currentFd;
+    int * fileDescriptors = malloc(amount*sizeof(int));
+    for(i = 0; i < amount; i++) {
+        if(read) {
+            currentFd = open(pipeNames[i],O_RDONLY);
+        } else {
+            currentFd = open(pipeNames[i],O_WRONLY);
+        }
+        fileDescriptors[i] = currentFd;
+    }
+    return fileDescriptors;
+}
+
+ssize_t readPipe(int fd, char * receiver, size_t length) {
     ssize_t  bytesRead;
 
     bytesRead = read(fd,receiver,length);
@@ -18,8 +32,7 @@ ssize_t readPipe(char * pipeName, char * receiver, size_t length) {
     return bytesRead;
 }
 
-void writePipe(char * pipeName, char * file) {
-    int fd = open(pipeName,O_WRONLY);
+void writePipe(int fd, char * file) {
     size_t messageLength;
     messageLength = strlen(file);
 
@@ -27,7 +40,6 @@ void writePipe(char * pipeName, char * file) {
     strcpy(lengthInChars, numberToThreeDigitArray(messageLength+1));
     write(fd,lengthInChars,strlen(lengthInChars));
     write(fd,file,strlen(file));
-    close(fd);
 }
 
 char * numberToThreeDigitArray(size_t num) {
@@ -37,4 +49,11 @@ char * numberToThreeDigitArray(size_t num) {
     ret[2] = (char) ('0' + num%10);
     ret[3] = 0;
     return ret;
+}
+
+void closePipes(int * fds, int amount) {
+    int i;
+    for(i = 0; i < amount; i++) {
+        close(fds[i]);
+    }
 }
