@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "application.h"
-#include "queue.h"
 #include "pipeUtilities.h"
 
 #define MD5_LEN 16
@@ -105,7 +104,7 @@ char ** generateOutgoingPipeNames(int slaves) {
     return ret;
 }
 
-char ** generateoIncomingPipeNames(int slaves) {
+char ** generateIncomingPipeNames(int slaves) {
     char pipeName [10] = "retPipe";
     char ** ret = malloc(slaves* sizeof(char*));
     int i;
