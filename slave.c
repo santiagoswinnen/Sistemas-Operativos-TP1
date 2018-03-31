@@ -11,6 +11,9 @@
 #define FALSE 0
 #define TRUE 1
 #define MAX_FILENAME 255
+#define READ_END 0
+#define WRITE_END 1
+#define MD5_BYTES 32
 
 int main(int argc, char * argv []) {
     char pipeName [11];
@@ -55,21 +58,21 @@ void tellMasterImFree(char * pipeName) {
 char * md5hash(char * fileName, int length) {
     pid_t pid;
     int status;
-    char * md5 = malloc(32);
+    char * md5 = malloc(MD5_BYTES);
     char fileNameConsumer[length]; //guarda el filename que md5sum deja en el buffer
     int fds[] = {-1, -1};
 
     pipe(fds);
     pid = fork();
     if(pid == 0) {
-        close(fds[0]);
-        dup2(fds[1], 1); // 1 == stdout
+        close(fds[READ_END]);
+        dup2(fds[WRITE_END], 1); // 1 == stdout
         char *   args [3] = {"md5sum", fileName, NULL};
         execvp("md5sum", args);
         perror("Could not run md5sum.\n");
     }
-    close(fds[1]);
-    dup2(fds[0], 0); // 0 == stdin
+    close(fds[WRITE_END]);
+    dup2(fds[READ_END], 0); // 0 == stdin
     while(wait(&status) > 0);
     scanf("%s  %s", md5, fileNameConsumer); 
 
