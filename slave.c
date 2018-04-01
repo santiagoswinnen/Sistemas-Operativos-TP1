@@ -29,7 +29,6 @@ int main(int argc, char * argv []) {
     incomingPipeFd = open(incomingPipeName,O_RDONLY);
     outgoingPipeFd = open(outgoingPipeName,O_WRONLY);
 
-
     do {
         bytesRead = (int)readPipe(incomingPipeFd,pipeData,3);
         if(bytesRead == 1 && pipeData[0] == ':') {

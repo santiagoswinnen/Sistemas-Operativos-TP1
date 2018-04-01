@@ -2,8 +2,9 @@
 
 int applicationMain(int fileNum,char ** files);
 void manageChildren(int fileNum, char ** files, int * pipesFd, int * returningPipesFd);
-void createPipes(char ** outgoingPipeNames ,char ** incomingPipeNames, int amount);
-void createSlaves(int parentPid, char ** outgoingPipeNames,char ** incomingPipeNames);
+void createPipe(char * outgoingPipeName ,char * incomingPipeName, int * outgoingFd, int * incomingFd);
+void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipeNames,
+                  int * outgoingFds, int * incomingFds);
 void endSlave(int fd);
 char ** generateOutgoingPipeNames(int slaves);
 char ** generateIncomingPipeNames(int slaves);

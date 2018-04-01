@@ -25,11 +25,9 @@ int applicationMain(int fileNum, char ** files) {
 
     outgoingPipeNames = generateOutgoingPipeNames(SLAVE_NUM);
     incomingPipeNames = generateIncomingPipeNames(SLAVE_NUM);
-    createPipes(outgoingPipeNames,incomingPipeNames, SLAVE_NUM);
-    printf("Ya cree los pipes\n");
-    outgoingPipesFd = openPipes(outgoingPipeNames,SLAVE_NUM, WRITE);
-    incomingPipesFd = openPipes(incomingPipeNames,SLAVE_NUM ,READ);
-    createSlaves(parentPid,outgoingPipeNames,incomingPipeNames);
+    outgoingPipesFd = malloc(SLAVE_NUM*sizeof(int));
+    incomingPipesFd = malloc(SLAVE_NUM*sizeof(int));
+    createSlaves(parentPid,outgoingPipeNames,incomingPipeNames, outgoingPipesFd,incomingPipesFd);
 
     for(i = 0; i < fileNum/2; i++) {
         if(isFile(files[i])) {
@@ -42,22 +40,22 @@ int applicationMain(int fileNum, char ** files) {
     closePipes(outgoingPipesFd, SLAVE_NUM);
 }
 
-void createPipes(char ** outgoingPipeNames ,char ** incomingPipeNames, int amount) {
-    int i;
-
-    for(i = 0; i < amount; i++) {
-        mkfifo(outgoingPipeNames[i],0666);
-        mkfifo(incomingPipeNames[i],0666);
-    }
+void createPipe(char * outgoingPipeName ,char * incomingPipeName, int * outgoingFd, int * incomingFd) {
+    mkfifo(outgoingPipeName,0777);
+    mkfifo(incomingPipeName,0777);
+    (*outgoingFd) = open(outgoingPipeName, O_WRONLY);
+    (*incomingFd) = open(incomingPipeName, O_RDONLY);
 }
 
-void createSlaves(int parentPid, char ** outgoingPipeNames,char ** incomingPipeNames) {
+void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipeNames,
+                  int * outgoingFds, int * incomingFds) {
     int i;
     for(i = 0; (i < SLAVE_NUM) && (getpid() == parentPid); i++) {
         pid_t newPid = fork();
         if(newPid == 0) {
-            printf("Creando esclavos\n");
             execl("./slave", "./slave", outgoingPipeNames[i], incomingPipeNames[i], (char *)NULL);
+            createPipe(outgoingPipeNames[i],incomingPipeNames[i],
+                       outgoingFds+i*sizeof(int), incomingFds+i*sizeof(int));
         }
     }
 }
