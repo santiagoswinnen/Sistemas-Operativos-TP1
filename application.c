@@ -25,9 +25,11 @@ int applicationMain(int fileNum, char ** files) {
 
     outgoingPipeNames = generateOutgoingPipeNames(SLAVE_NUM);
     incomingPipeNames = generateIncomingPipeNames(SLAVE_NUM);
-    createSlaves(parentPid,outgoingPipeNames,incomingPipeNames);
+    createPipes(outgoingPipeNames,incomingPipeNames, SLAVE_NUM);
+    printf("Ya cree los pipes\n");
     outgoingPipesFd = openPipes(outgoingPipeNames,SLAVE_NUM, WRITE);
     incomingPipesFd = openPipes(incomingPipeNames,SLAVE_NUM ,READ);
+    createSlaves(parentPid,outgoingPipeNames,incomingPipeNames);
 
     for(i = 0; i < fileNum/2; i++) {
         if(isFile(files[i])) {
@@ -40,12 +42,18 @@ int applicationMain(int fileNum, char ** files) {
     closePipes(outgoingPipesFd, SLAVE_NUM);
 }
 
-void createSlaves(int parentPid, char ** outgoingPipeNames,char ** incomingPipeNames) {
+void createPipes(char ** outgoingPipeNames ,char ** incomingPipeNames, int amount) {
     int i;
 
-    for(i = 0; (i < SLAVE_NUM) && (getpid() == parentPid); i++) {
+    for(i = 0; i < amount; i++) {
         mkfifo(outgoingPipeNames[i],0666);
         mkfifo(incomingPipeNames[i],0666);
+    }
+}
+
+void createSlaves(int parentPid, char ** outgoingPipeNames,char ** incomingPipeNames) {
+    int i;
+    for(i = 0; (i < SLAVE_NUM) && (getpid() == parentPid); i++) {
         pid_t newPid = fork();
         if(newPid == 0) {
             printf("Creando esclavos\n");
@@ -62,14 +70,12 @@ void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * inc
     char pipeContent [MD5_LEN];
     char ** md5 = malloc(fileNum* sizeof(char*));
     int md5index = 0;
-    int selectRet;
     fd_set incomingSet;
 
     FD_ZERO(&incomingSet);
 
     while(!allTasksCompleted) {
         allTasksCompleted = TRUE;
-        selectRet = select(SLAVE_NUM,incomingPipesFd,NULL, NULL, 1);
         for(i = 0; i < SLAVE_NUM; i++) {
             bytesRead = readPipe(incomingPipesFd[i], pipeContent, 3*sizeof(char));
             if(bytesRead == 3) {

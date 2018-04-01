@@ -14,10 +14,15 @@ int * openPipes(char ** pipeNames, int amount, int read) {
     int currentFd;
     int * fileDescriptors = malloc(amount*sizeof(int));
     for(i = 0; i < amount; i++) {
+        printf("Abriendo pipes de %s\n", read ? "entrada": "salida");
         if(read) {
+
             currentFd = open(pipeNames[i],O_RDONLY);
+
         } else {
+            printf("Entre al open\n");
             currentFd = open(pipeNames[i],O_WRONLY);
+            printf("Ya sali del open\n");
         }
         fileDescriptors[i] = currentFd;
     }
