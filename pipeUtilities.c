@@ -37,7 +37,7 @@ void writePipe(int fd, char * file) {
     char * lengthInChars = malloc(4*sizeof(char));
 
     strcpy(lengthInChars, numberToThreeDigitArray(messageLength));
-    write(fd,lengthInChars,strlen(lengthInChars));
+    write(fd,lengthInChars,3);
     write(fd,file,strlen(file));
 }
 

@@ -36,7 +36,7 @@ int main(int argc, char * argv []) {
             endSignalReceived = TRUE;
         } else if(bytesRead == 3){
             bytesToRead = (size_t)atoi(pipeData);
-            printf("Antes de leer el file. Se llama  %s y tengo que leer %d\n",pipeData, (int)bytesToRead);
+            printf("Antes de leer el file. Tengo que leer %d\n", (int)bytesToRead);
             bytesRead = (int)readPipe(incomingPipeFd,pipeData,bytesToRead);
             printf("Despues de leer el file. Se llama %s y lei %d\n", pipeData, bytesRead);
             //md5hash(pipeData, bytesRead);
