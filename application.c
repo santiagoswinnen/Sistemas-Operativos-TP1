@@ -40,12 +40,11 @@ int applicationMain(int fileNum, char ** files) {
     closePipes(outgoingPipesFd, SLAVE_NUM);
 }
 
-void createPipe(char * outgoingPipeName ,char * incomingPipeName, int * outgoingFd, int * incomingFd) {
+void createPipe(char * outgoingPipeName ,char * incomingPipeName, int * outgoingFds, int * incomingFds, int index) {
     mkfifo(outgoingPipeName,0777);
     mkfifo(incomingPipeName,0777);
-    (*outgoingFd) = open(outgoingPipeName, O_WRONLY);
-    (*incomingFd) = open(incomingPipeName, O_RDONLY);
-    printf("%d\n",(*outgoingFd));
+    outgoingFds[index] = open(outgoingPipeName, O_WRONLY);
+    incomingFds[index] = open(incomingPipeName, O_RDONLY);
 }
 
 void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipeNames,
@@ -55,9 +54,10 @@ void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipe
         pid_t newPid = fork();
         if(newPid == 0) {
             execl("./slave", "./slave", outgoingPipeNames[i], incomingPipeNames[i], (char *)NULL);
-            createPipe(outgoingPipeNames[i],incomingPipeNames[i],
-                       outgoingFds+i*sizeof(int), incomingFds+i*sizeof(int));
+
         }
+        createPipe(outgoingPipeNames[i],incomingPipeNames[i],
+                   outgoingFds, incomingFds, i);
     }
 }
 

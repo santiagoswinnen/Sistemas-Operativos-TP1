@@ -22,7 +22,6 @@ void writePipe(int fd, char * file) {
     messageLength = strlen(file);
     char * lengthInChars = malloc(4*sizeof(char));
 
-    printf("Writing on file descriptor %d\n", fd);
     strcpy(lengthInChars, numberToThreeDigitArray(messageLength));
     write(fd,lengthInChars,3);
     write(fd,file,strlen(file));
