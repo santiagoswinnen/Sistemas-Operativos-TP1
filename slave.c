@@ -19,6 +19,7 @@ int main(int argc, char * argv []) {
     int incomingPipeFd;
     int outgoingPipeFd;
     char pipeData[MAX_FILENAME];
+    char md5[MAX_FILENAME + MD5_BYTES];
     int bytesRead;
     int endSignalReceived = FALSE;
     size_t bytesToRead;
@@ -31,17 +32,17 @@ int main(int argc, char * argv []) {
 
     do {
         bytesRead = (int)readPipe(incomingPipeFd,pipeData,3);
-        printf("Leo longitud: %s\n", pipeData);
         if(bytesRead == 1 && pipeData[0] == ':') {
             endSignalReceived = TRUE;
         } else if(bytesRead == 3){
             bytesToRead = (size_t)atoi(pipeData);
             printf("Antes de leer el file. Tengo que leer %d\n", (int)bytesToRead);
             bytesRead = (int)readPipe(incomingPipeFd,pipeData,bytesToRead);
+            pipeData[bytesRead] = 0;
             printf("Despues de leer el file. Se llama %s y lei %d\n", pipeData, bytesRead);
-            //md5hash(pipeData, bytesRead);
-            //printf("%s\n", pipeData);
-            //writePipe(outgoingPipeName,pipeData);
+            strcpy(md5,md5hash(pipeData, bytesRead));
+            printf("Ya hashee, estoy por devolver %s \n", md5);
+            writePipe(outgoingPipeFd,pipeData);
         } else {
             printf("Lei %d bytes: %s\n",bytesRead, pipeData);
             tellMasterImFree(outgoingPipeFd);

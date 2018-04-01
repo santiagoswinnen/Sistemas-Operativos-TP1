@@ -54,7 +54,7 @@ void createSlaves(int parentPid, char ** outgoingPipeNames,char ** incomingPipeN
     }
 }
 
-void manageChildren(int fileNum, char ** files, int * pipesFd, int * incomingPipesFd) {
+void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * incomingPipesFd) {
     ssize_t bytesRead;
     size_t messageLength;
     int allTasksCompleted = FALSE;
@@ -62,9 +62,14 @@ void manageChildren(int fileNum, char ** files, int * pipesFd, int * incomingPip
     char pipeContent [MD5_LEN];
     char ** md5 = malloc(fileNum* sizeof(char*));
     int md5index = 0;
+    int selectRet;
+    fd_set incomingSet;
+
+    FD_ZERO(&incomingSet);
 
     while(!allTasksCompleted) {
         allTasksCompleted = TRUE;
+        selectRet = select(SLAVE_NUM,incomingPipesFd,NULL, NULL, 1);
         for(i = 0; i < SLAVE_NUM; i++) {
             bytesRead = readPipe(incomingPipesFd[i], pipeContent, 3*sizeof(char));
             if(bytesRead == 3) {
@@ -74,10 +79,10 @@ void manageChildren(int fileNum, char ** files, int * pipesFd, int * incomingPip
                 strcpy(md5[md5index++], pipeContent);
                 allTasksCompleted = FALSE;
             } else if (bytesRead == 1 && i < fileNum) {
-                writePipe(pipesFd[i],files[i++]);
+                writePipe(outgoingPipesFd[i],files[i++]);
                 allTasksCompleted = FALSE;
             } else if (bytesRead == 1) {
-                endSlave(pipesFd[i]);
+                endSlave(outgoingPipesFd[i]);
             }
         }
     }
