@@ -26,6 +26,8 @@ int main(int argc, char * argv []) {
     char * incomingPipeName = argv[1];
     char * outgoingPipeName = argv[2];
 
+    int i = 0;
+
     incomingPipeFd = open(incomingPipeName,O_RDONLY);
     outgoingPipeFd = open(outgoingPipeName,O_WRONLY);
 
@@ -46,7 +48,8 @@ int main(int argc, char * argv []) {
             printf("Lei %d bytes: %s\n",bytesRead, pipeData);
             tellMasterImFree(outgoingPipeFd);
         }
-    } while(!endSignalReceived);
+        i++;
+    } while(i<20);
     close(incomingPipeFd);
     close(outgoingPipeFd);
 }

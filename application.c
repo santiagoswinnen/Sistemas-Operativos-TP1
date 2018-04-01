@@ -45,6 +45,7 @@ void createPipe(char * outgoingPipeName ,char * incomingPipeName, int * outgoing
     mkfifo(incomingPipeName,0777);
     (*outgoingFd) = open(outgoingPipeName, O_WRONLY);
     (*incomingFd) = open(incomingPipeName, O_RDONLY);
+    printf("%d\n",(*outgoingFd));
 }
 
 void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipeNames,
@@ -72,24 +73,24 @@ void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * inc
 
     FD_ZERO(&incomingSet);
 
-    while(!allTasksCompleted) {
-        allTasksCompleted = TRUE;
-        for(i = 0; i < SLAVE_NUM; i++) {
-            bytesRead = readPipe(incomingPipesFd[i], pipeContent, 3*sizeof(char));
-            if(bytesRead == 3) {
-                messageLength = (size_t)atoi(pipeContent); // NOLINT
-                readPipe(incomingPipesFd[i], pipeContent, messageLength);
-                md5[md5index] = malloc(MD5_LEN * sizeof(char));
-                strcpy(md5[md5index++], pipeContent);
-                allTasksCompleted = FALSE;
-            } else if (bytesRead == 1 && i < fileNum) {
-                writePipe(outgoingPipesFd[i],files[i++]);
-                allTasksCompleted = FALSE;
-            } else if (bytesRead == 1) {
-                endSlave(outgoingPipesFd[i]);
-            }
-        }
-    }
+//    while(!allTasksCompleted) {
+//        allTasksCompleted = TRUE;
+//        for(i = 0; i < SLAVE_NUM; i++) {
+//            bytesRead = readPipe(incomingPipesFd[i], pipeContent, 3*sizeof(char));
+//            if(bytesRead == 3) {
+//                messageLength = (size_t)atoi(pipeContent); // NOLINT
+//                readPipe(incomingPipesFd[i], pipeContent, messageLength);
+//                md5[md5index] = malloc(MD5_LEN * sizeof(char));
+//                strcpy(md5[md5index++], pipeContent);
+//                allTasksCompleted = FALSE;
+//            } else if (bytesRead == 1 && i < fileNum) {
+//                writePipe(outgoingPipesFd[i],files[i++]);
+//                allTasksCompleted = FALSE;
+//            } else if (bytesRead == 1) {
+//                endSlave(outgoingPipesFd[i]);
+//            }
+//        }
+//    }
 }
 
 int isFile(const char* file) {
