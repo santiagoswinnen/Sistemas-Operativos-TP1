@@ -8,7 +8,7 @@
 #include "application.h"
 #include "pipeUtilities.h"
 
-#define MD5_LEN 33
+#define MD5_LEN 32
 #define FALSE 0
 #define TRUE 1
 #define SLAVE_NUM 1
@@ -69,12 +69,13 @@ void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * inc
     int i;
     int fileIndex = SLAVE_NUM;
     char pipeContent[MD5_LEN + FILENAME_MAX + 2];
+    char lengthRead [4];
     char **md5 = malloc(fileNum * sizeof(char *));
     int md5index = 0;
     int nfds = biggestDescriptor(incomingPipesFd, SLAVE_NUM);
 
     fd_set readfds;
-
+    printf("Llegue a select\n");
     while (!allTasksCompleted) {
         FD_ZERO(&readfds);
         for (i = 0; i < SLAVE_NUM; i++) {
@@ -84,20 +85,22 @@ void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * inc
         if (selectRet == -1) {
             perror("Error at select function\n");
         } else if (selectRet == 0) {
-
+            printf("NO HAY NADA QUE LEER\n");
         } else {
             for (i = 0; i < SLAVE_NUM; i++) {
-                if (FD_ISSET(incomingPipesFd[i], &readfds)) {
-                    bytesRead = read(incomingPipesFd[i], pipeContent, 3);
+                if (FD_ISSET(incomingPipesFd[i], &readfds) && ((bytesRead = read(incomingPipesFd[i], lengthRead, 3)) <= 0)) {
+                    lengthRead[bytesRead] = 0;
                     if (bytesRead == 3) {
-                        messageLength = (size_t) atoi(pipeContent); //NOLINT
-                        readPipe(incomingPipesFd[i], pipeContent, messageLength);
+                        messageLength = (size_t) atoi(lengthRead); //NOLINT
+                        bytesRead = read(incomingPipesFd[i], pipeContent, messageLength);
+                        pipeContent[bytesRead] = 0;
                         md5[md5index] = malloc((messageLength + 1) * sizeof(char));
                         strcpy(md5[md5index++], pipeContent);
                         md5[messageLength] = 0;
                         if (fileIndex < fileNum) {
-                            printf("FILE EN SELECT: %s\n",files[fileIndex+1]);
-                            writePipe(outgoingPipesFd[i], files[fileIndex++]);
+                            char * fileToWrite = files[fileIndex++];
+                            printf("FILE EN SELECT: %s PTR %p\n",fileToWrite, (void *)fileToWrite);
+                            writePipe(outgoingPipesFd[i], fileToWrite);
                         }
                     } else {
                         if (fileIndex >= fileNum) {

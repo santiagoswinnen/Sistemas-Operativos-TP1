@@ -8,7 +8,6 @@
 
 #endif //TP1_PIPEUTILITIES_H
 
-ssize_t readPipe(int fd, char * receiver, size_t length);
 void writePipe(int fd, char * file);
 char * numberToThreeDigitArray(size_t num);
 void closePipes(int * fds, int amount);

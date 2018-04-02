@@ -13,12 +13,13 @@
 #define MAX_FILENAME 255
 #define READ_END 0
 #define WRITE_END 1
-#define MD5_BYTES 33
+#define MD5_BYTES 32
 
 int main(int argc, char * argv []) {
     int incomingPipeFd;
     int outgoingPipeFd;
     char pipeData[MAX_FILENAME];
+    char lengthRead[4];
     char * md5;
     int bytesRead;
     int endSignalReceived = FALSE;
@@ -30,15 +31,17 @@ int main(int argc, char * argv []) {
     outgoingPipeFd = open(outgoingPipeName,O_WRONLY);
 
     do {
-        bytesRead = (int)readPipe(incomingPipeFd,pipeData,3);
-        printf("Bytes leidos en la primera: %d\n",bytesRead);
+        printf("MI fd es %d\n", incomingPipeFd);
+        bytesRead = (int)read(incomingPipeFd,lengthRead,3);
+        lengthRead[bytesRead] = 0;
         if(bytesRead == 1 && pipeData[0] == ':') {
             endSignalReceived = TRUE;
         } else if(bytesRead == 3){
-            bytesToRead = (size_t)atoi(pipeData);
-            bytesRead = (int)readPipe(incomingPipeFd,pipeData,bytesToRead);
+            printf("LONGITUD: %s PTR %p\n",lengthRead, (void *)pipeData);
+            bytesToRead = (size_t)atoi(lengthRead);
+            bytesRead = (int)read(incomingPipeFd,pipeData,bytesToRead);
             pipeData[bytesRead] = 0;
-            printf("FILE EN ESCLAVO: %s\n",pipeData);
+            printf("DESPUES DE ESCRIBIR: %s PTR %p\n",pipeData, (void *)pipeData);
             md5 = md5hash(pipeData, bytesRead);
             writePipe(outgoingPipeFd,md5);
         } else {
@@ -53,7 +56,7 @@ int main(int argc, char * argv []) {
 char * md5hash(char * fileName, int length) {
     pid_t pid;
     int status;
-    char * md5 = malloc(MD5_BYTES);
+    char * md5 = malloc(MD5_BYTES+1);
     char fileNameConsumer[length]; //guarda el filename que md5sum deja en el buffer
     int fds[] = {-1, -1};
 
