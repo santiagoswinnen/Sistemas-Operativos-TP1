@@ -31,17 +31,14 @@ int main(int argc, char * argv []) {
     outgoingPipeFd = open(outgoingPipeName,O_WRONLY);
 
     do {
-        printf("MI fd es %d\n", incomingPipeFd);
         bytesRead = (int)read(incomingPipeFd,lengthRead,3);
         lengthRead[bytesRead] = 0;
         if(bytesRead == 1 && pipeData[0] == ':') {
             endSignalReceived = TRUE;
         } else if(bytesRead == 3){
-            printf("LONGITUD: %s PTR %p\n",lengthRead, (void *)pipeData);
             bytesToRead = (size_t)atoi(lengthRead);
             bytesRead = (int)read(incomingPipeFd,pipeData,bytesToRead);
             pipeData[bytesRead] = 0;
-            printf("DESPUES DE ESCRIBIR: %s PTR %p\n",pipeData, (void *)pipeData);
             md5 = md5hash(pipeData, bytesRead);
             writePipe(outgoingPipeFd,md5);
         } else {

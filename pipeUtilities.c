@@ -18,16 +18,12 @@ void writePipe(int fd, char * file) {
 
     if(messageLength != 0) {
         do {
-            printf("WRITE: Voy a escribir %s de longitud %d al fd %d\n",lengthInChars, (int)strlen(lengthInChars), fd);
             bytesWritten += write(fd,lengthInChars,3);
-            printf("WRITE: Ya escribi %d bytes\n", bytesWritten);
         } while(bytesWritten < 3);
 
         bytesWritten = 0;
         do {
-            printf("WRITE: Voy a escribir %s de longitud %d\n",file, (int)strlen(file));
             bytesWritten +=  write(fd,file,strlen(file));
-            printf("WRITE: Ya escribi %d bytes\n", bytesWritten);
         } while(bytesWritten < messageLength);
     }
 

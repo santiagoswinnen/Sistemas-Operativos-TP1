@@ -88,7 +88,7 @@ void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * inc
             printf("NO HAY NADA QUE LEER\n");
         } else {
             for (i = 0; i < SLAVE_NUM; i++) {
-                if (FD_ISSET(incomingPipesFd[i], &readfds) && ((bytesRead = read(incomingPipesFd[i], lengthRead, 3)) <= 0)) {
+                if (FD_ISSET(incomingPipesFd[i], &readfds) && ((bytesRead = read(incomingPipesFd[i], lengthRead, 3)) >= 0)) {
                     lengthRead[bytesRead] = 0;
                     if (bytesRead == 3) {
                         messageLength = (size_t) atoi(lengthRead); //NOLINT
@@ -96,10 +96,9 @@ void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * inc
                         pipeContent[bytesRead] = 0;
                         md5[md5index] = malloc((messageLength + 1) * sizeof(char));
                         strcpy(md5[md5index++], pipeContent);
-                        md5[messageLength] = 0;
+                        md5[md5index-1][messageLength] = 0;
                         if (fileIndex < fileNum) {
                             char * fileToWrite = files[fileIndex++];
-                            printf("FILE EN SELECT: %s PTR %p\n",fileToWrite, (void *)fileToWrite);
                             writePipe(outgoingPipesFd[i], fileToWrite);
                         }
                     } else {
