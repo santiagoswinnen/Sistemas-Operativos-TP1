@@ -16,6 +16,7 @@
 #define MD5_BYTES 32
 
 int main(int argc, char * argv []) {
+
     int incomingPipeFd;
     int outgoingPipeFd;
     char pipeData[MAX_FILENAME];
@@ -46,11 +47,14 @@ int main(int argc, char * argv []) {
         }
 
     } while(!endSignalReceived);
+
     close(incomingPipeFd);
     close(outgoingPipeFd);
+    free(md5);
 }
 
 char * md5hash(char * fileName, int length) {
+
     pid_t pid;
     int status;
     char * md5 = malloc(MD5_BYTES+1);
