@@ -8,7 +8,7 @@
 #include "application.h"
 #include "pipeUtilities.h"
 
-#define MD5_LEN 16
+#define MD5_LEN 33
 #define FALSE 0
 #define TRUE 1
 #define SLAVE_NUM 1
@@ -29,18 +29,20 @@ int applicationMain(int fileNum, char ** files) {
     incomingPipesFd = malloc(SLAVE_NUM*sizeof(int));
     createSlaves(parentPid,outgoingPipeNames,incomingPipeNames, outgoingPipesFd,incomingPipesFd);
 
-    for(i = 0; i < fileNum/2; i++) {
+    for(i = 0; i < SLAVE_NUM; i++) {
         if(isFile(files[i])) {
-            int pipeNum = i%SLAVE_NUM;
-            writePipe(outgoingPipesFd[pipeNum], files[i]);
+            printf("FILE EN LA DISTRIBUCION: %s\n", files[i]);
+            writePipe(outgoingPipesFd[i], files[i]);
         }
     }
     manageChildren(fileNum, files, outgoingPipesFd, incomingPipesFd);
     closePipes(incomingPipesFd, SLAVE_NUM);
     closePipes(outgoingPipesFd, SLAVE_NUM);
+    return 1;
 }
 
 void createPipe(char * outgoingPipeName ,char * incomingPipeName, int * outgoingFds, int * incomingFds, int index) {
+
     mkfifo(outgoingPipeName,0777);
     mkfifo(incomingPipeName,0777);
     outgoingFds[index] = open(outgoingPipeName, O_WRONLY);
@@ -56,9 +58,8 @@ void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipe
             execl("./slave", "./slave", outgoingPipeNames[i], incomingPipeNames[i], (char *)NULL);
 
         }
-        createPipe(outgoingPipeNames[i],incomingPipeNames[i],
-                   outgoingFds, incomingFds, i);
-    }
+        createPipe(outgoingPipeNames[i],incomingPipeNames[i], outgoingFds, incomingFds, i);
+}
 }
 
 void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * incomingPipesFd) {
@@ -66,31 +67,47 @@ void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * inc
     size_t messageLength;
     int allTasksCompleted = FALSE;
     int i;
-    char pipeContent [MD5_LEN];
-    char ** md5 = malloc(fileNum* sizeof(char*));
+    int fileIndex = SLAVE_NUM;
+    char pipeContent[MD5_LEN + FILENAME_MAX + 2];
+    char **md5 = malloc(fileNum * sizeof(char *));
     int md5index = 0;
-    fd_set incomingSet;
+    int nfds = biggestDescriptor(incomingPipesFd, SLAVE_NUM);
 
-    FD_ZERO(&incomingSet);
+    fd_set readfds;
 
-//    while(!allTasksCompleted) {
-//        allTasksCompleted = TRUE;
-//        for(i = 0; i < SLAVE_NUM; i++) {
-//            bytesRead = readPipe(incomingPipesFd[i], pipeContent, 3*sizeof(char));
-//            if(bytesRead == 3) {
-//                messageLength = (size_t)atoi(pipeContent); // NOLINT
-//                readPipe(incomingPipesFd[i], pipeContent, messageLength);
-//                md5[md5index] = malloc(MD5_LEN * sizeof(char));
-//                strcpy(md5[md5index++], pipeContent);
-//                allTasksCompleted = FALSE;
-//            } else if (bytesRead == 1 && i < fileNum) {
-//                writePipe(outgoingPipesFd[i],files[i++]);
-//                allTasksCompleted = FALSE;
-//            } else if (bytesRead == 1) {
-//                endSlave(outgoingPipesFd[i]);
-//            }
-//        }
-//    }
+    while (!allTasksCompleted) {
+        FD_ZERO(&readfds);
+        for (i = 0; i < SLAVE_NUM; i++) {
+            FD_SET(incomingPipesFd[i], &readfds);
+        }
+        int selectRet = select(nfds, &readfds, NULL, NULL, NULL);
+        if (selectRet == -1) {
+            perror("Error at select function\n");
+        } else if (selectRet == 0) {
+
+        } else {
+            for (i = 0; i < SLAVE_NUM; i++) {
+                if (FD_ISSET(incomingPipesFd[i], &readfds)) {
+                    bytesRead = read(incomingPipesFd[i], pipeContent, 3);
+                    if (bytesRead == 3) {
+                        messageLength = (size_t) atoi(pipeContent); //NOLINT
+                        readPipe(incomingPipesFd[i], pipeContent, messageLength);
+                        md5[md5index] = malloc((messageLength + 1) * sizeof(char));
+                        strcpy(md5[md5index++], pipeContent);
+                        md5[messageLength] = 0;
+                        if (fileIndex < fileNum) {
+                            printf("FILE EN SELECT: %s\n",files[fileIndex+1]);
+                            writePipe(outgoingPipesFd[i], files[fileIndex++]);
+                        }
+                    } else {
+                        if (fileIndex >= fileNum) {
+                            allTasksCompleted = TRUE;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 int isFile(const char* file) {
@@ -98,6 +115,18 @@ int isFile(const char* file) {
 
     stat(file, &buf);
     return !S_ISDIR(buf.st_mode);
+}
+
+int biggestDescriptor(const int * descriptors, int length) {
+    int biggest = 0;
+    int i;
+    for(i = 0 ; i < length; i++) {
+        if(descriptors[i] > biggest) {
+            biggest = descriptors[i];
+        }
+    }
+    biggest += 1;
+    return biggest;
 }
 
 char ** generateOutgoingPipeNames(int slaves) {

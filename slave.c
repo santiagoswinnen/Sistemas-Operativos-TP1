@@ -13,51 +13,41 @@
 #define MAX_FILENAME 255
 #define READ_END 0
 #define WRITE_END 1
-#define MD5_BYTES 32
+#define MD5_BYTES 33
 
 int main(int argc, char * argv []) {
     int incomingPipeFd;
     int outgoingPipeFd;
     char pipeData[MAX_FILENAME];
-    char md5[MAX_FILENAME + MD5_BYTES];
+    char * md5;
     int bytesRead;
     int endSignalReceived = FALSE;
     size_t bytesToRead;
     char * incomingPipeName = argv[1];
     char * outgoingPipeName = argv[2];
 
-    int i = 0;
-
     incomingPipeFd = open(incomingPipeName,O_RDONLY);
     outgoingPipeFd = open(outgoingPipeName,O_WRONLY);
 
     do {
         bytesRead = (int)readPipe(incomingPipeFd,pipeData,3);
+        printf("Bytes leidos en la primera: %d\n",bytesRead);
         if(bytesRead == 1 && pipeData[0] == ':') {
             endSignalReceived = TRUE;
         } else if(bytesRead == 3){
             bytesToRead = (size_t)atoi(pipeData);
-            printf("Antes de leer el file. Tengo que leer %d\n", (int)bytesToRead);
             bytesRead = (int)readPipe(incomingPipeFd,pipeData,bytesToRead);
             pipeData[bytesRead] = 0;
-            printf("Despues de leer el file. Se llama %s y lei %d\n", pipeData, bytesRead);
-            strcpy(md5,md5hash(pipeData, bytesRead));
-            printf("Ya hashee, estoy por devolver %s \n", md5);
-            writePipe(outgoingPipeFd,pipeData);
+            printf("FILE EN ESCLAVO: %s\n",pipeData);
+            md5 = md5hash(pipeData, bytesRead);
+            writePipe(outgoingPipeFd,md5);
         } else {
-            printf("Lei %d bytes: %s\n",bytesRead, pipeData);
-            tellMasterImFree(outgoingPipeFd);
+            if(bytesRead == 0) {endSignalReceived=TRUE;}
         }
-        i++;
-    } while(i<20);
+
+    } while(!endSignalReceived);
     close(incomingPipeFd);
     close(outgoingPipeFd);
-}
-
-void tellMasterImFree(int fd) {
-    char message [1];
-    message[0] = 1;
-    write(fd,message,1);
 }
 
 char * md5hash(char * fileName, int length) {
@@ -79,7 +69,8 @@ char * md5hash(char * fileName, int length) {
     close(fds[WRITE_END]);
     dup2(fds[READ_END], 0); // 0 == stdin
     while(wait(&status) > 0);
-    scanf("%s  %s", md5, fileNameConsumer); 
+    scanf("%s  %s", md5, fileNameConsumer);
+    md5[MD5_BYTES] = 0;
 
     return md5;
 }

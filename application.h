@@ -5,6 +5,7 @@ void manageChildren(int fileNum, char ** files, int * pipesFd, int * returningPi
 void createPipe(char * outgoingPipeName ,char * incomingPipeName, int * outgoingFds, int * incomingFds, int index);
 void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipeNames,
                   int * outgoingFds, int * incomingFds);
+int biggestDescriptor(const int * descriptors, int length);
 void endSlave(int fd);
 char ** generateOutgoingPipeNames(int slaves);
 char ** generateIncomingPipeNames(int slaves);
