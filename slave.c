@@ -21,7 +21,7 @@ int main(int argc, char * argv []) {
     int outgoingPipeFd;
     char pipeData[MAX_FILENAME];
     char lengthRead[4];
-    char * md5;
+    char * md5 = NULL;
     int bytesRead;
     int endSignalReceived = FALSE;
     size_t bytesToRead;
@@ -50,14 +50,16 @@ int main(int argc, char * argv []) {
 
     close(incomingPipeFd);
     close(outgoingPipeFd);
-    free(md5);
+    if(md5 != NULL)
+        free(md5);
 }
 
 char * md5hash(char * fileName, int length) {
 
     pid_t pid;
     int status;
-    char * md5 = malloc(MD5_BYTES+1);
+    int size = length + MD5_BYTES + 6; //6 debido a los simbolos
+    char * md5 = malloc(size);
     char fileNameConsumer[length]; //guarda el filename que md5sum deja en el buffer
     int fds[] = {-1, -1};
 
@@ -73,8 +75,11 @@ char * md5hash(char * fileName, int length) {
     close(fds[WRITE_END]);
     dup2(fds[READ_END], 0); // 0 == stdin
     while(wait(&status) > 0);
-    scanf("%s  %s", md5, fileNameConsumer);
-    md5[MD5_BYTES] = 0;
+    scanf("%s  %s", md5 + length + 4, md5 + 1);
+    md5[0] = md5[length + 3] = '<';
+    md5[length + 1] = md5[size - 2] = '>';
+    md5[length + 2] = ':';
+    md5[size - 1] = 0;
 
     return md5;
 }
