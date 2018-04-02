@@ -58,6 +58,7 @@ char * md5hash(char * fileName, int length) {
 
     pid_t pid;
     int status;
+    int read;
     int size = length + MD5_BYTES + 6; //6 debido a los simbolos
     char * md5 = malloc(size);
     char fileNameConsumer[length]; //guarda el filename que md5sum deja en el buffer
@@ -75,7 +76,11 @@ char * md5hash(char * fileName, int length) {
     close(fds[WRITE_END]);
     dup2(fds[READ_END], 0); // 0 == stdin
     while(wait(&status) > 0);
-    scanf("%s  %s", md5 + length + 4, md5 + 1);
+    read = scanf("%s  %s", md5 + length + 4, md5 + 1);
+    if(read <= 0) {
+        strcpy(md5, "md5sum failed.");
+        return md5;
+    }
     md5[0] = md5[length + 3] = '<';
     md5[length + 1] = md5[size - 2] = '>';
     md5[length + 2] = ':';
