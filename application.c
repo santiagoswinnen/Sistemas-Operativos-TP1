@@ -14,6 +14,9 @@
 #define SLAVE_NUM 10
 #define CHAR 1
 #define INT 1
+#define SHMSIZE (MD5_LEN + FILENAME_MAX)
+#define ERROR_MSG "Error creating shared memory"
+
 
 int applicationMain(int fileNum, char ** files) {
 
@@ -23,6 +26,13 @@ int applicationMain(int fileNum, char ** files) {
     char ** incomingPipeNames;
     int * outgoingPipesFd;
     int * incomingPipesFd;
+    char * shm_address;
+    
+    //Remove previously created memory
+    cleanShm(parentPid);
+    //Create shared memory
+    shm_address = createSharedMemory(parentPid);
+
 
     outgoingPipeNames = generateOutgoingPipeNames(SLAVE_NUM);
     incomingPipeNames = generateIncomingPipeNames(SLAVE_NUM);
@@ -130,4 +140,30 @@ int biggestDescriptor(const int * descriptors, int length) {
     }
     biggest += 1;
     return biggest;
+}
+
+void cleanShm(key_t key) {
+
+    char str[100];
+    sprintf(buff,"ipcrm -M %d", (int)key);
+
+    //Execute shell command to clean memory
+    system(buff);
+}
+
+char * createSharedMemory(key_t key) {
+
+    char * address;
+    int shmid;
+
+    if ((shmid = shmget(key, SHMSIZE, 0666 | IPC_CREAT | IPC_EXCL )) < 0) {
+        perror(ERROR_MSG);
+        exit(1);
+    }
+
+    if ((shm_address = shmat(shmid,NULL,0)) == (char *) -1 ) {
+        perror(ERROR_MSG);
+        exit(1);
+    }
+    return address;
 }

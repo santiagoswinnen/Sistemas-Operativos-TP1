@@ -7,3 +7,5 @@ void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipe
 int biggestDescriptor(const int * descriptors, int length);
 int isFile(const char* file);
 
+void cleanShm(key_t key);
+char * createSharedMemory(key_t key);
