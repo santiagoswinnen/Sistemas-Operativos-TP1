@@ -77,7 +77,7 @@ char * getSharedMemory(key_t key) {
 
 void openSemaphore(sem_t ** semaphorePtr ) {
 
-    if((*semaphorePtr = sem_open("/Custom/semaphore", O_CREAT, 0660, 0)) == SEM_FAILED) {
+    if((*semaphorePtr = sem_open("/my_semaphore", O_CREAT, 0660, 0)) == SEM_FAILED) {
         perror(SEM_ERRORM);
         exit(1);
     }
@@ -85,6 +85,6 @@ void openSemaphore(sem_t ** semaphorePtr ) {
 
 void closeSemaphore(sem_t ** semaphorePtr) {
 
-    sem_unlink("/Custom/semaphore");
+    sem_unlink("/my_semaphore");
     sem_close(*semaphorePtr);
 }
