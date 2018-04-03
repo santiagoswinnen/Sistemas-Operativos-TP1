@@ -15,7 +15,7 @@
 #define WRITE_END 1
 #define MD5_BYTES 32
 
-int main(int argc, char * argv []) {
+int mainSlave(int argc, char * argv []) {
 
     int incomingPipeFd;
     int outgoingPipeFd;
@@ -88,6 +88,3 @@ char * md5hash(char * fileName, int length) {
 
     return md5;
 }
-
-
-

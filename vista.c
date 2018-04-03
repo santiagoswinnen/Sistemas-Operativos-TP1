@@ -9,9 +9,11 @@
 #include <sys/ipc.h>
 #include <fcntl.h>
 #include <semaphore.h>
-#include <vista.h>
+#include "vista.h"
 
-int main(int argc, char * argv[]) {
+#define SEM_ERROR "Error creating semaphore" // define appears in application.c
+
+int vistaMain(int argc, char * argv[]) {
 
 	pid_t app_pid;
 	key_t key;
@@ -24,7 +26,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	//Application process id will be used as key to create memory
-	int app_pid = atoi(argv[1]);
+	app_pid = atoi(argv[1]);
 
 	printf("Connected to Application Process with ID: %d",app_pid);
 
@@ -43,7 +45,7 @@ int main(int argc, char * argv[]) {
 	            * (shm_address + 1) = 0;
 	            sem_post(sem);
 	            break;
-	        case 0:                      
+	        case 0:
 	            sem_wait(sem);
 	            break;
 	        default:
@@ -60,7 +62,7 @@ char * getSharedMemory(key_t key) {
 
 	int shmid;
 	char * address;
-	
+
 	if (shmid = shmget(key,SHMSIZE,0666) < 0) {
 		perror(ERROR_MSG);
 		exit(1);
@@ -73,11 +75,11 @@ char * getSharedMemory(key_t key) {
 	}
 	return address;
 }
-
+/*
 void openSemaphore(sem_t ** semaphorePtr ) {
 
     if((*semaphorePtr = sem_open("/Custom_semaphore", O_CREAT, 0666, 0)) == SEM_FAILED) {
-        perror(SEM_ERRORM);
+        perror(SEM_ERROR);
         exit(1);
     }
 }
@@ -87,3 +89,4 @@ void closeSemaphore(sem_t ** semaphorePtr) {
     sem_unlink("/Custom_semaphore");
     sem_close(*semaphorePtr);
 }
+*/
