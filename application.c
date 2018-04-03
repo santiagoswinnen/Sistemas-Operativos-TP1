@@ -20,18 +20,20 @@
 #define INT 1
 #define SHMSIZE (MD5_LEN + FILENAME_MAX)
 #define ERROR_MSG "Error creating shared memory"
+#define SEM_ERRORM "Error creating semaphore"
 
 
 int applicationMain(int fileNum, char ** files) {
 
     int i;
-    pid_t parentPid = getpid();
     char ** outgoingPipeNames;
     char ** incomingPipeNames;
     int * outgoingPipesFd;
     int * incomingPipesFd;
+
+     pid_t parentPid = getpid();
     char * shm_address;
-    
+    sem_t * sem;
      //Remove previously created memory
     cleanShm(parentPid);
     //Create shared memory
@@ -87,7 +89,7 @@ void createSlaves(int parentPid, int slaveNumber, char ** outgoingPipeNames, cha
 }
 
 void manageChildren(int fileNum, int slaveNumber, char ** files, 
-        int * outgoingPipesFd, int * incomingPipesFd, char * shm_address, key_t key) {
+        int * outgoingPipesFd, int * incomingPipesFd, char * shm_address, key_t key,sem_t * sem) {
 
     ssize_t bytesRead;
     size_t messageLength;
@@ -201,24 +203,23 @@ int biggestDescriptor(const int * descriptors, int length) {
 void cleanShm(key_t key) {
 
     char str[100];
-    sprintf(buff,"ipcrm -M %d", (int)key);
-
+    sprintf(str,"ipcrm -M %d", (int)key);
     //Execute shell command to clean memory
-    system(buff);
+    system(str);
 }
 
 
 void clearBufferMemory(char *address) {
 
     for(int i=2 ; i<SHMSIZE ; i++) {
-        * (char *(address + i)) = 0;
+        * ((char *)(address + i)) = 0;
     }
 
 }
 
 char * createSharedMemory(key_t key) {
 
-    char * address;
+    char * shm_address;
     int shmid;
 
     if ((shmid = shmget(key, SHMSIZE, 0666 | IPC_CREAT | IPC_EXCL )) < 0) {
@@ -230,13 +231,13 @@ char * createSharedMemory(key_t key) {
         perror(ERROR_MSG);
         exit(1);
     }
-    return address;
+    return shm_address;
 }
 
 
 void openSemaphore(sem_t ** semaphorePtr ) {
 
-    if((*semaphorePtr = sem_open("/Custom_semaphore", O_CREAT, 0666, 0)) == SEM_FAILED) {
+    if((*semaphorePtr = sem_open("/Custom/semaphore", O_CREAT, 0666, 0)) == SEM_FAILED) {
         perror(SEM_ERRORM);
         exit(1);
     }
@@ -244,6 +245,6 @@ void openSemaphore(sem_t ** semaphorePtr ) {
 
 void closeSemaphore(sem_t ** semaphorePtr) {
 
-    sem_unlink("/Custom_semaphore");
+    sem_unlink("/Custom/semaphore");
     sem_close(*semaphorePtr);
 }
