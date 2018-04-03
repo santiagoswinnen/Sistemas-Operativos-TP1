@@ -1,4 +1,4 @@
-all: application slave
+all: application slave vista
 
 application: application.c main.c pipeUtilities.c
 	gcc -o application application.c main.c pipeUtilities.c -lpthread -lrt -Wall -pedantic
