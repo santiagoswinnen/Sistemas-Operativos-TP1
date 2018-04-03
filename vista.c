@@ -8,7 +8,6 @@
 #include <sys/shm.h>
 #include <sys/ipc.h>
 #include <fcntl.h>
-#include <semaphore.h>
 #include "vista.h"
 #include <sys/param.h>
 
@@ -17,7 +16,6 @@
 int main(int argc, char * argv[]) {
 
 	pid_t app_pid;
-	key_t key;
 	char * shm_address;
 	sem_t * sem;
 
@@ -46,7 +44,7 @@ int main(int argc, char * argv[]) {
 	            * (shm_address + 1) = 0;
 	            sem_post(sem);
 	            break;
-	        case 0:                      
+	        case 0:
 	            sem_wait(sem);
 	            break;
 	        default:
@@ -63,8 +61,8 @@ char * getSharedMemory(key_t key) {
 
 	int shmid;
 	char * address;
-	
-	if (shmid = shmget(key,SHMSIZE,0666) < 0) {
+
+	if ((shmid = shmget(key,SHMSIZE,0666)) < 0) {
 		perror(ERROR_MSG);
 		exit(1);
 	}

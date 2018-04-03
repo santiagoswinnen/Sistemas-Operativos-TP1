@@ -46,7 +46,7 @@ int applicationMain(int fileNum, char ** files) {
     //Create shared memory
     shm_address = createSharedMemory(parentPid);
     //Indicates there is no vista yet
-    * shm_address = 0; 
+    * shm_address = 0;
     *(shm_address +1) = 0;
     openSemaphore(&sem);
 
@@ -57,7 +57,7 @@ int applicationMain(int fileNum, char ** files) {
 
     if(fileNum == 0)
         return 0;
-    
+
     slaveNumber = (fileNum > SLAVE_NUM) ? SLAVE_NUM : fileNum;
     outgoingPipeNames = generateOutgoingPipeNames(slaveNumber);
     incomingPipeNames = generateIncomingPipeNames(slaveNumber);
@@ -72,7 +72,8 @@ int applicationMain(int fileNum, char ** files) {
         }
     }
 
-    manageChildren(fileNum, slaveNumber, files, outgoingPipesFd, incomingPipesFd,shm_address,parentPid,sem);
+    manageChildren(fileNum, slaveNumber, files, outgoingPipesFd,
+      incomingPipesFd,shm_address,parentPid, sem);
     closePipes(incomingPipesFd, slaveNumber);
     closePipes(outgoingPipesFd, slaveNumber);
 
@@ -96,7 +97,7 @@ void createSlaves(int parentPid, int slaveNumber, char ** outgoingPipeNames, cha
     }
 }
 
-void manageChildren(int fileNum, int slaveNumber, char ** files, 
+void manageChildren(int fileNum, int slaveNumber, char ** files,
         int * outgoingPipesFd, int * incomingPipesFd, char * shm_address, key_t key,sem_t * sem) {
 
     ssize_t bytesRead;
@@ -142,7 +143,7 @@ void manageChildren(int fileNum, int slaveNumber, char ** files,
         }
     }
     endSlaves(outgoingPipesFd,slaveNumber);
-    
+
 
     /* Initialize sencond shared memory bytes, first byte indicates if vista is present,
     / second if vista is working(1) or app is (0)

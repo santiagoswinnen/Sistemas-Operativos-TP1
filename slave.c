@@ -61,7 +61,6 @@ char * md5hash(char * fileName, int length) {
     int read;
     int size = length + MD5_BYTES + 6; //6 debido a los simbolos
     char * md5 = malloc(size);
-    char fileNameConsumer[length]; //guarda el filename que md5sum deja en el buffer
     int fds[] = {-1, -1};
 
     pipe(fds);
@@ -88,6 +87,3 @@ char * md5hash(char * fileName, int length) {
 
     return md5;
 }
-
-
-
