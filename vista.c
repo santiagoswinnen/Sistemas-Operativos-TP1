@@ -9,7 +9,6 @@
 #include <sys/ipc.h>
 #include <fcntl.h>
 #include <semaphore.h>
-#include <vista.h>
 #include "vista.h"
 
 #define SEM_ERRORM "Error creating semaphore"
