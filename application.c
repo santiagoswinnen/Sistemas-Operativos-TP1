@@ -2,15 +2,22 @@
 #include <dirent.h>
 #include <string.h>
 #include <stdio.h>
-#include <sys/stat.h>
+
 #include <unistd.h>
-#include <fcntl.h>
-#include "application.h"
-#include "pipeUtilities.h"
-#include <semaphore.h>
+#include <sys/types.h>
+//shared memory includes
 #include <sys/shm.h>
 #include <sys/ipc.h>
-#include <sys/types.h>
+
+//semaphore includes
+#include <semaphore.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+
+
+
+#include "application.h"
+#include "pipeUtilities.h"
 
 #define MD5_LEN 32
 #define FALSE 0
@@ -65,7 +72,7 @@ int applicationMain(int fileNum, char ** files) {
         }
     }
 
-    manageChildren(fileNum, slaveNumber, files, outgoingPipesFd, incomingPipesFd,shm_address,parentPid);
+    manageChildren(fileNum, slaveNumber, files, outgoingPipesFd, incomingPipesFd,shm_address,parentPid,sem);
     closePipes(incomingPipesFd, slaveNumber);
     closePipes(outgoingPipesFd, slaveNumber);
 

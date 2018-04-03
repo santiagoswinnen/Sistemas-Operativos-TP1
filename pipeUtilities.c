@@ -73,8 +73,18 @@ void endSlaves(int * fds, int amount) {
 void createPipe(char * outgoingPipeName ,char * incomingPipeName, int * outgoingFds,
                 int * incomingFds, int index) {
 
-    mkfifo(outgoingPipeName,0777);
-    mkfifo(incomingPipeName,0777);
+    int mkfifoRet [2];
+
+    mkfifoRet[0] = mkfifo(outgoingPipeName,0777);
+    if(mkfifoRet[0] == -1) {
+        perror("Pipe could not be created");
+        exit(1);
+    }
+    mkfifoRet[1] = mkfifo(incomingPipeName,0777);
+    if(mkfifoRet[1] == -1) {
+        perror("Pipe could not be created");
+       exit(1);
+    }
     outgoingFds[index] = open(outgoingPipeName, O_WRONLY);
     incomingFds[index] = open(incomingPipeName, O_RDONLY);
 }
