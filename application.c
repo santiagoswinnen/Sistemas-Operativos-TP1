@@ -22,7 +22,7 @@
 #define MD5_LEN 32
 #define FALSE 0
 #define TRUE 1
-#define SLAVE_NUM 10
+#define SLAVE_NUM 1
 #define CHAR 1
 #define INT 1
 #define SHMSIZE (MD5_LEN + FILENAME_MAX)
@@ -50,8 +50,8 @@ int applicationMain(int fileNum, char ** files) {
     *(shm_address +1) = 0;
     openSemaphore(&sem);
 
-    //Give 12 seconds for vista process to start
-    sleep(12);
+    //Give 1 second for vista process to start
+    sleep(1);
 
     int slaveNumber;
 
@@ -69,6 +69,8 @@ int applicationMain(int fileNum, char ** files) {
     for(i = 0; i < slaveNumber; i++) {
         if(isFile(files[i])) {
             writePipe(outgoingPipesFd[i], files[i]);
+        } else {
+          writePipe(outgoingPipesFd[i], "");
         }
     }
 
@@ -107,16 +109,19 @@ void manageChildren(int fileNum, int slaveNumber, char ** files,
     char pipeContent[MD5_LEN + FILENAME_MAX + 2];
     char lengthRead [4];
     char ** md5 = malloc(fileNum * sizeof(char *));
-    int md5index = 0;
+    int md5index = 0, zeroCount = 0;
     int nfds = biggestDescriptor(incomingPipesFd, slaveNumber);
+    int selectRet;
+    char * fileToWrite;
     fd_set readfds;
 
-    while (md5index < fileNum) {
+    while (md5index + zeroCount < fileNum) {
         FD_ZERO(&readfds);
         for (i = 0; i < slaveNumber; i++) {
             FD_SET(incomingPipesFd[i], &readfds);
         }
-        int selectRet = select(nfds, &readfds, NULL, NULL, NULL);
+
+        selectRet = select(nfds, &readfds, NULL, NULL, NULL);
 
         if (selectRet == -1) {
             perror("Error at select function\n");
@@ -126,16 +131,30 @@ void manageChildren(int fileNum, int slaveNumber, char ** files,
                         ((bytesRead = read(incomingPipesFd[i], lengthRead, 3)) >= 0)) {
 
                     lengthRead[bytesRead] = 0;
+
                     if (bytesRead == 3) {
                         messageLength = (size_t) atoi(lengthRead); //NOLINT
                         bytesRead = read(incomingPipesFd[i], pipeContent, messageLength);
                         pipeContent[bytesRead] = 0;
-                        md5[md5index] = malloc((messageLength + 1) * sizeof(char));
-                        strcpy(md5[md5index++], pipeContent);
-                        md5[md5index - 1][messageLength] = 0;
+
+                        if (messageLength != 0) {
+                          md5[md5index] = malloc((messageLength + 1) * sizeof(char));
+                          strcpy(md5[md5index++], pipeContent);
+                          md5[md5index - 1][messageLength] = 0;
+                          printf("escribi el md5: %s\n", md5[md5index - 1]);
+                        } else {
+                          zeroCount++;
+                        }
+
                         if (fileIndex < fileNum) {
-                            char *fileToWrite = files[fileIndex++];
-                            writePipe(outgoingPipesFd[i], fileToWrite);
+                            fileToWrite = files[fileIndex++];
+
+                            if(isFile(fileToWrite))
+                            {
+                              writePipe(outgoingPipesFd[i], fileToWrite);
+                            } else {
+                              writePipe(outgoingPipesFd[i], "");
+                            }
                         }
                     }
                 }
@@ -150,21 +169,20 @@ void manageChildren(int fileNum, int slaveNumber, char ** files,
     */
     *(shm_address + 1) = 0;
 
-    for(i=0 ; i < fileNum ; i++) {
+    for(i=0 ; i + zeroCount < fileNum ; i++) {
 
         switch(*(shm_address+1) ) {
 
             case 0: clearBufferMemory(shm_address);
                     printf("MD5: %s\n", md5[i]);
-                    memcpy(shm_address+2,md5[i],strlen(md5[i]));
+                    memcpy(shm_address+2, md5[i], strlen(md5[i]) + 1);
                     *(shm_address+1) = 1;
                     sem_post(sem);
                     break;
 
             case 1: if(*(shm_address) ) { //Vista is connected to shared memory
                         sem_wait(sem);
-                    }
-                    else {
+                    } else {
                         *(shm_address + 1) = 0;
                     }
                     break;

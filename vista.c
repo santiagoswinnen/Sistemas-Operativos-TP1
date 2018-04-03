@@ -27,7 +27,7 @@ int main(int argc, char * argv[]) {
 	//Application process id will be used as key to create memory
 	app_pid = atoi(argv[1]);
 
-	printf("Connected to Application Process with ID: %d",app_pid);
+	printf("Connected to Application Process with ID: %d", app_pid);
 
 	shm_address = getSharedMemory(app_pid);
 	openSemaphore(&sem);

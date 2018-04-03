@@ -34,14 +34,20 @@ int main(int argc, char * argv []) {
     do {
         bytesRead = (int)read(incomingPipeFd,lengthRead,3);
         lengthRead[bytesRead] = 0;
+
         if(bytesRead == 1 && pipeData[0] == ':') {
             endSignalReceived = TRUE;
         } else if(bytesRead == 3){
             bytesToRead = (size_t)atoi(lengthRead);
             bytesRead = (int)read(incomingPipeFd,pipeData,bytesToRead);
             pipeData[bytesRead] = 0;
-            md5 = md5hash(pipeData, bytesRead);
-            writePipe(outgoingPipeFd,md5);
+
+            if (bytesRead != 0) {
+              md5 = md5hash(pipeData, bytesRead);
+              writePipe(outgoingPipeFd, md5);
+            } else {
+              writePipe(outgoingPipeFd, "");
+            }
         } else {
             if(bytesRead == 0) {endSignalReceived=TRUE;}
         }

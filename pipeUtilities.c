@@ -18,16 +18,18 @@ void writePipe(int fd, char * file) {
     char * lengthInChars = numberToThreeDigitArray(messageLength);
     int bytesWritten = 0;
 
-    if(messageLength != 0) {
-        do {
-            bytesWritten += write(fd,lengthInChars,3);
-        } while(bytesWritten < 3);
+    do {
+        bytesWritten += write(fd,lengthInChars,3);
+    } while(bytesWritten < 3);
 
-        bytesWritten = 0;
-        do {
-            bytesWritten +=  write(fd,file,strlen(file));
-        } while(bytesWritten < messageLength);
+    bytesWritten = 0;
+
+    if (messageLength != 0) {
+      do {
+          bytesWritten +=  write(fd,file,strlen(file));
+      } while(bytesWritten < messageLength);
     }
+  
     free(lengthInChars);
 }
 
