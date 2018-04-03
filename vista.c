@@ -6,8 +6,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <vista.h>
-
-char * getSharedMemory(key_t key);
+#include <semaphore.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
+#include <sys/types.h>
+#include <errno.h>
 
 int main(int argc, char * argv[]) {
 

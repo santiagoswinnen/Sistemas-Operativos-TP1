@@ -7,6 +7,10 @@
 #include <fcntl.h>
 #include "application.h"
 #include "pipeUtilities.h"
+#include <semaphore.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
+#include <sys/types.h>
 
 #define MD5_LEN 32
 #define FALSE 0
