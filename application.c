@@ -237,7 +237,7 @@ char * createSharedMemory(key_t key) {
 
 void openSemaphore(sem_t ** semaphorePtr ) {
 
-    if((*semaphorePtr = sem_open("/Custom/semaphore", O_CREAT, 0666, 0)) == SEM_FAILED) {
+    if((*semaphorePtr = sem_open("/Custom/semaphore", O_CREAT, 0660, 0)) == SEM_FAILED) {
         perror(SEM_ERRORM);
         exit(1);
     }
