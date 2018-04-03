@@ -32,10 +32,17 @@ int applicationMain(int fileNum, char ** files) {
     int * incomingPipesFd;
     char * shm_address;
     
-    //Remove previously created memory
+     //Remove previously created memory
     cleanShm(parentPid);
     //Create shared memory
     shm_address = createSharedMemory(parentPid);
+    //Indicates there is no vista yet
+    * shm_address = 0; 
+    openSemaphore(&sem);
+
+    //Give 12 seconds for vista process to start
+    sleep(12);
+
     int slaveNumber;
 
     if(fileNum == 0)
@@ -55,7 +62,7 @@ int applicationMain(int fileNum, char ** files) {
         }
     }
 
-    manageChildren(fileNum, slaveNumber, files, outgoingPipesFd, incomingPipesFd);
+    manageChildren(fileNum, slaveNumber, files, outgoingPipesFd, incomingPipesFd,shm_address,parentPid);
     closePipes(incomingPipesFd, slaveNumber);
     closePipes(outgoingPipesFd, slaveNumber);
 
@@ -80,7 +87,7 @@ void createSlaves(int parentPid, int slaveNumber, char ** outgoingPipeNames, cha
 }
 
 void manageChildren(int fileNum, int slaveNumber, char ** files, 
-        int * outgoingPipesFd, int * incomingPipesFd) {
+        int * outgoingPipesFd, int * incomingPipesFd, char * shm_address, key_t key) {
 
     ssize_t bytesRead;
     size_t messageLength;
@@ -125,9 +132,48 @@ void manageChildren(int fileNum, int slaveNumber, char ** files,
         }
     }
     endSlaves(outgoingPipesFd,slaveNumber);
-    for(i = 0; i < fileNum ; i++) {
-        printf("MD5: %s\n", md5[i]);
+    
+
+    /* Initialize sencond shared memory bytes, first byte indicates if vista is present,
+    / second if vista is working(1) or app is (0)
+    */
+
+    *shm_address = 0;
+
+    for(i=0 ; i < fileNum ; i++) {
+
+        switch(*(shm_address+1) ) {
+
+            case 0: clearBufferMemory(shm_address);
+                    printf("MD5: %s\n", md5[i]);
+                    memcpy(shm_address+2,md5[i],strlen(md5[i]));
+                    *(shm_address+1) = 1;
+                    sem_post(sem);
+                    break;
+
+            case 1: if(*(shm_address) ) { //Vista is connected to shared memory
+                        sem_wait(sem);
+                    }
+                    else {
+                        *(shm_address + 1) = 0;
+                    }
+                    break;
+
+            default: perror("Invalid reading of shared memory");
+                     exit(1);
+        }
     }
+
+    //Disconnect from vista process
+    if( *shm_address) {
+        sem_post(sem);
+        *shm_address = 0;
+        *(shm_address + 1) = 0;
+    }
+
+    //Free shared memory space and close sempaphores
+    closeSemaphore(&sem);
+    cleanShm(key);
     freeResources(md5,md5index);
 }
 
@@ -161,6 +207,15 @@ void cleanShm(key_t key) {
     system(buff);
 }
 
+
+void clearBufferMemory(char *address) {
+
+    for(int i=2 ; i<SHMSIZE ; i++) {
+        * (char *(address + i)) = 0;
+    }
+
+}
+
 char * createSharedMemory(key_t key) {
 
     char * address;
@@ -176,4 +231,19 @@ char * createSharedMemory(key_t key) {
         exit(1);
     }
     return address;
+}
+
+
+void openSemaphore(sem_t ** semaphorePtr ) {
+
+    if((*semaphorePtr = sem_open("/Custom_semaphore", O_CREAT, 0666, 0)) == SEM_FAILED) {
+        perror(SEM_ERRORM);
+        exit(1);
+    }
+}
+
+void closeSemaphore(sem_t ** semaphorePtr) {
+
+    sem_unlink("/Custom_semaphore");
+    sem_close(*semaphorePtr);
 }

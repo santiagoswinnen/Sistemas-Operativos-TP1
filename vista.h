@@ -3,3 +3,5 @@
 #define ERROR_MSG "Error connecting to shared memory"
 
 char * getSharedMemory(key_t key);
+void openSemaphore(sem_t ** semaphorePtr );
+void closeSemaphore(sem_t ** semaphorePtr);

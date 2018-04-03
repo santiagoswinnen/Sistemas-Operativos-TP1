@@ -4,22 +4,21 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <vista.h>
-#include <semaphore.h>
+#include <sys/types.h>
 #include <sys/shm.h>
 #include <sys/ipc.h>
-#include <sys/types.h>
-#include <errno.h>
+#include <fcntl.h>
+#include <semaphore.h>
+#include <vista.h>
 
 int main(int argc, char * argv[]) {
 
 	pid_t app_pid;
 	key_t key;
 	char * shm_address;
+	sem_t * sem;
 
 	if(argc != 2) {
-
 		printf("Vista process expects parents pid as parameter");
 		exit(1);
 	}
@@ -27,13 +26,32 @@ int main(int argc, char * argv[]) {
 	//Application process id will be used as key to create memory
 	int app_pid = atoi(argv[1]);
 
+	printf("Connected to Application Process with ID: %d",app_pid);
+
 	shm_address = getSharedMemory(app_pid);
+	openSemaphore(&sem);
 
+	//Connect with application process
+	*shm_address = 1;
 
-	while( *shm_address != 0) {
+	while(*shm_address)	{
 
-	} 
+	    switch( *(shm_address + 1)) {
 
+	        case 1:
+	            printf("%s\n",shm_address + 2);
+	            * (shm_address + 1) = 0;
+	            sem_post(sem);
+	            break;
+	        case 0:                      
+	            sem_wait(sem);
+	            break;
+	        default:
+	            perror("Invalid reading of shared memory");
+	            exit(1);
+	    }
+
+	}
 
 	return 0;
 }
@@ -54,4 +72,18 @@ char * getSharedMemory(key_t key) {
 
 	}
 	return address;
+}
+
+void openSemaphore(sem_t ** semaphorePtr ) {
+
+    if((*semaphorePtr = sem_open("/Custom_semaphore", O_CREAT, 0666, 0)) == SEM_FAILED) {
+        perror(SEM_ERRORM);
+        exit(1);
+    }
+}
+
+void closeSemaphore(sem_t ** semaphorePtr) {
+
+    sem_unlink("/Custom_semaphore");
+    sem_close(*semaphorePtr);
 }
