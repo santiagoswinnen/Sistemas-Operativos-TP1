@@ -32,36 +32,41 @@ int applicationMain(int fileNum, char ** files) {
     cleanShm(parentPid);
     //Create shared memory
     shm_address = createSharedMemory(parentPid);
+    int slaveNumber;
 
+    if(fileNum == 0)
+        return 0;
+    
+    slaveNumber = (fileNum > SLAVE_NUM) ? SLAVE_NUM : fileNum;
+    outgoingPipeNames = generateOutgoingPipeNames(slaveNumber);
+    incomingPipeNames = generateIncomingPipeNames(slaveNumber);
+    outgoingPipesFd = malloc(slaveNumber*sizeof(int));
+    incomingPipesFd = malloc(slaveNumber*sizeof(int));
+    createSlaves(parentPid, slaveNumber, outgoingPipeNames,incomingPipeNames,
+        outgoingPipesFd,incomingPipesFd);
 
-    outgoingPipeNames = generateOutgoingPipeNames(SLAVE_NUM);
-    incomingPipeNames = generateIncomingPipeNames(SLAVE_NUM);
-    outgoingPipesFd = malloc(SLAVE_NUM*sizeof(int));
-    incomingPipesFd = malloc(SLAVE_NUM*sizeof(int));
-    createSlaves(parentPid,outgoingPipeNames,incomingPipeNames, outgoingPipesFd,incomingPipesFd);
-
-    for(i = 0; i < SLAVE_NUM; i++) {
+    for(i = 0; i < slaveNumber; i++) {
         if(isFile(files[i])) {
             writePipe(outgoingPipesFd[i], files[i]);
         }
     }
 
-    manageChildren(fileNum, files, outgoingPipesFd, incomingPipesFd);
-    closePipes(incomingPipesFd, SLAVE_NUM);
-    closePipes(outgoingPipesFd, SLAVE_NUM);
+    manageChildren(fileNum, slaveNumber, files, outgoingPipesFd, incomingPipesFd);
+    closePipes(incomingPipesFd, slaveNumber);
+    closePipes(outgoingPipesFd, slaveNumber);
 
-    freeResources(outgoingPipeNames, SLAVE_NUM);
-    freeResources(incomingPipeNames, SLAVE_NUM);
+    freeResources(outgoingPipeNames, slaveNumber);
+    freeResources(incomingPipeNames, slaveNumber);
     free(incomingPipesFd);
     free(outgoingPipesFd);
     return 0;
 }
 
-void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipeNames,
+void createSlaves(int parentPid, int slaveNumber, char ** outgoingPipeNames, char ** incomingPipeNames,
                   int * outgoingFds, int * incomingFds) {
 
     int i;
-    for(i = 0; (i < SLAVE_NUM) && (getpid() == parentPid); i++) {
+    for(i = 0; (i < slaveNumber) && (getpid() == parentPid); i++) {
         pid_t newPid = fork();
         if(newPid == 0) {
             execl("./slave", "./slave", outgoingPipeNames[i], incomingPipeNames[i], (char *)NULL);
@@ -70,22 +75,23 @@ void createSlaves(int parentPid, char ** outgoingPipeNames, char ** incomingPipe
     }
 }
 
-void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * incomingPipesFd) {
+void manageChildren(int fileNum, int slaveNumber, char ** files, 
+        int * outgoingPipesFd, int * incomingPipesFd) {
 
     ssize_t bytesRead;
     size_t messageLength;
     int i;
-    int fileIndex = SLAVE_NUM;
+    int fileIndex = slaveNumber;
     char pipeContent[MD5_LEN + FILENAME_MAX + 2];
     char lengthRead [4];
     char ** md5 = malloc(fileNum * sizeof(char *));
     int md5index = 0;
-    int nfds = biggestDescriptor(incomingPipesFd, SLAVE_NUM);
+    int nfds = biggestDescriptor(incomingPipesFd, slaveNumber);
     fd_set readfds;
 
     while (md5index < fileNum) {
         FD_ZERO(&readfds);
-        for (i = 0; i < SLAVE_NUM; i++) {
+        for (i = 0; i < slaveNumber; i++) {
             FD_SET(incomingPipesFd[i], &readfds);
         }
         int selectRet = select(nfds, &readfds, NULL, NULL, NULL);
@@ -93,7 +99,7 @@ void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * inc
         if (selectRet == -1) {
             perror("Error at select function\n");
         } else if(selectRet > 0){
-            for (i = 0; i < SLAVE_NUM; i++) {
+            for (i = 0; i < slaveNumber; i++) {
                 if (FD_ISSET(incomingPipesFd[i], &readfds) &&
                         ((bytesRead = read(incomingPipesFd[i], lengthRead, 3)) >= 0)) {
 
@@ -114,7 +120,7 @@ void manageChildren(int fileNum, char ** files, int * outgoingPipesFd, int * inc
             }
         }
     }
-    endSlaves(outgoingPipesFd,SLAVE_NUM);
+    endSlaves(outgoingPipesFd,slaveNumber);
     for(i = 0; i < fileNum ; i++) {
         printf("MD5: %s\n", md5[i]);
     }
