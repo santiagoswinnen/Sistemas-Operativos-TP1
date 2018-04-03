@@ -1,5 +1,3 @@
-#include <sys/types.h>
-
 
 int applicationMain(int fileNum,char ** files);
 void manageChildren(int fileNum, int slaveNumber, char ** files, int * pipesFd, int * returningPipesFd,char * shm_address,key_t key,sem_t * sem);

@@ -12,7 +12,6 @@
 #include <sys/ipc.h>
 #include <sys/types.h>
 
-
 #define MD5_LEN 32
 #define FALSE 0
 #define TRUE 1
@@ -41,6 +40,7 @@ int applicationMain(int fileNum, char ** files) {
     shm_address = createSharedMemory(parentPid);
     //Indicates there is no vista yet
     * shm_address = 0; 
+    *(shm_address +1) = 0;
     openSemaphore(&sem);
 
     //Give 12 seconds for vista process to start
@@ -140,8 +140,7 @@ void manageChildren(int fileNum, int slaveNumber, char ** files,
     /* Initialize sencond shared memory bytes, first byte indicates if vista is present,
     / second if vista is working(1) or app is (0)
     */
-
-    *shm_address = 0;
+    *(shm_address + 1) = 0;
 
     for(i=0 ; i < fileNum ; i++) {
 
