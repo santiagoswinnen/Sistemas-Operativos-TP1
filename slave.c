@@ -76,7 +76,7 @@ md5hash (char *file_name, int length) {
         dup2(fds[WRITE_END], STDOUT);
         char *args[3] = {"md5sum", file_name, NULL};
         execvp("md5sum", args);
-        perror("Could not run md5sum.\n");
+        perror("Could not run md5sum");
     }
 
     close(fds[WRITE_END]);

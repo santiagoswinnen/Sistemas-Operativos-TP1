@@ -74,38 +74,23 @@ create_double_pipe (char *outgoing_pipe_name, char * incoming_pipe_name,
     int *outgoing_fds, int *incoming_fds, int index) {
     int mkfifo_ret[2];
 
-    //create_pipe(outgoing_pipe_name, mkfifoRet, 0);
-    //create_pipe(incoming_pipe_name, mkfifoRet, 1);
-
     mkfifo_ret[0] = mkfifo(outgoing_pipe_name, 0777);
 
     if (mkfifo_ret[0] == -1) {
-        perror("Pipe could not be created\n");
+        perror("Pipe could not be created");
         exit(1);
     }
 
     mkfifo_ret[1] = mkfifo(incoming_pipe_name, 0777);
 
     if (mkfifo_ret[1] == -1) {
-        perror("Pipe could not be created\n");
+        perror("Pipe could not be created");
         exit(1);
     }
 
     outgoing_fds[index] = open(outgoing_pipe_name, O_WRONLY);
     incoming_fds[index] = open(incoming_pipe_name, O_RDONLY);
 }
-
-
-/*void
-create_pipe (char *pipe_name, int *mkfifo_ret, int pipe_direction) {
-   mkfifo_ret[pipe_direction] = mkfifo(pipe_name, 0777);
-
-    if (mkfifo_ret[pipe_direction] == -1) {
-        perror("Pipe could not be created\n");
-        exit(1);
-    }
-}*/
-
 
 char **
 generate_outgoing_pipe_names (int slaves_amount) {

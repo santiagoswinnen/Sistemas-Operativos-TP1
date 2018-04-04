@@ -138,7 +138,7 @@ manage_children (int file_amount, int slave_amount, char **files,
         select_ret = select(nfds, &readfds, NULL, NULL, NULL);
 
         if (select_ret == -1) {
-            perror("Error at select function\n");
+            perror("Error at select function");
         } else if (select_ret > 0){
             for (i = 0; i < slave_amount; i++) {
                 if (FD_ISSET(incoming_pipes_fd[i], &readfds) &&
@@ -214,7 +214,7 @@ void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index
         }
         break;
     default:
-        perror("Invalid reading of shared memory\n");
+        perror("Invalid reading of shared memory");
         exit(1);
                             }
 }
