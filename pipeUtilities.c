@@ -24,12 +24,10 @@ void writePipe(int fd, char * file) {
 
     bytesWritten = 0;
 
-    if (messageLength != 0) {
-      do {
-          bytesWritten +=  write(fd,file,strlen(file));
-      } while(bytesWritten < messageLength);
-    }
-  
+    do {
+        bytesWritten +=  write(fd,file,strlen(file));
+    } while(bytesWritten < messageLength);
+
     free(lengthInChars);
 }
 

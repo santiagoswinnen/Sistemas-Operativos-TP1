@@ -161,6 +161,7 @@ void manageChildren(int fileNum, int slaveNumber, char ** files,
             }
         }
     }
+    
     endSlaves(outgoingPipesFd,slaveNumber);
 
 
