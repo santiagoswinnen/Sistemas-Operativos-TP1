@@ -18,3 +18,5 @@ char *create_shared_memory (key_t key);
 void clear_buffer_memory (char *address);
 void open_semaphore (sem_t **semaphore_ptr);
 void close_semaphore (sem_t **semaphore_ptr);
+void writeToMD5(char ** md5, char * pipe_content, int md5_index, size_t message_length);
+void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index);
