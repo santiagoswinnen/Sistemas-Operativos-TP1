@@ -25,24 +25,23 @@
 #define SHMSIZE (MD5_LEN + FILENAME_MAX)
 #define ERROR_MSG "Error creating shared memory"
 #define SEM_ERROR "Error creating semaphore"
-#define SLEEP_TIME 15
+#define SLEEP_TIME 10
 
 
 int
 application_main (int file_amount, char **files) {
-    int i;
     int slave_amount;
     char **outgoing_pipe_names, **incoming_pipe_names;
     int *outgoing_pipes_fd, *incoming_pipes_fd;
     char *shm_address;
     pid_t parent_pid = getpid();
     sem_t *sem;
-    FILE * results_fp = fopen("./results.txt", "a");
+    FILE *results_fp = fopen("./results.txt", "a");
     unsigned int results_fd = fileno(results_fp);
-    char * separator = "-----------------------------------------\n";
-    
+    char *separator = "-----------------------------------------\n";
+
     printf("Application PID: %d\n", parent_pid);
-    
+
     dup2(results_fd, STDOUT);
     dup2(results_fd, STDERR);
     printf("%s", separator);
@@ -73,7 +72,7 @@ application_main (int file_amount, char **files) {
     create_slaves(parent_pid, slave_amount, outgoing_pipe_names,
         incoming_pipe_names, outgoing_pipes_fd, incoming_pipes_fd);
 
-    for (i = 0; i < slave_amount; i++) {
+    for (int i = 0; i < slave_amount; i++) {
         if (is_file(files[i]))
             write_pipe(outgoing_pipes_fd[i], files[i]);
         else
@@ -157,17 +156,19 @@ manage_children (int file_amount, int slave_amount, char **files,
                         pipe_content[bytes_read] = 0;
 
                         if (message_length != 0) {
-
-                            write_to_md5(md5,pipe_content,md5_index,message_length);
-                            if(*shm_address == 1)
-                                send_data_to_vista(shm_address,sem,md5,md5_index,file_amount,folder_count);
+                            write_to_md5(md5, pipe_content, md5_index,
+                                message_length);
+                            if (*shm_address == 1)
+                                send_data_to_view(shm_address, sem, md5,
+                                    md5_index, file_amount, folder_count);
                             else
                                 printf("%s\n", md5[md5_index]);
-                            md5_index++;
 
+                            md5_index++;
                         } else {
                           folder_count++;
                         }
+
                         if (file_index < file_amount) {
                             file_to_write = files[file_index++];
 
@@ -182,55 +183,55 @@ manage_children (int file_amount, int slave_amount, char **files,
         }
     }
 
-    end_slaves(outgoing_pipes_fd,slave_amount);
+    end_slaves(outgoing_pipes_fd, slave_amount);
 
-    disconnect_view_process(shm_address,sem);
+    disconnect_view_process(shm_address, sem);
 
     close_semaphore(&sem);
     clean_shm(key);
     free_resources(md5, md5_index);
 }
 
-void write_to_md5(char ** md5, char * pipe_content, int md5_index, size_t message_length) {
-
-    md5[md5_index] = malloc((message_length + 1)* sizeof(char));
-    strcpy(md5[md5_index], pipe_content); 
-    md5[md5_index][message_length] = 0; 
-
+void
+write_to_md5 (char **md5, char *pipe_content, int md5_index,
+    size_t message_length) {
+    md5[md5_index] = malloc((message_length + 1) * sizeof(char));
+    strcpy(md5[md5_index], pipe_content);
+    md5[md5_index][message_length] = 0;
 }
 
-void send_data_to_vista(char * shm_address, sem_t * sem, char ** md5, int md5_index,int file_amount, int folder_count) {
+void
+send_data_to_view (char *shm_address, sem_t *sem, char **md5, int md5_index,
+    int file_amount, int folder_count) {
+    switch (*(shm_address + 1) ) {
+        case 0:
+            clear_buffer_memory(shm_address);
+            printf("%s\n", md5[md5_index]);
+            memcpy(shm_address + 2, md5[md5_index], strlen(md5[md5_index]) + 1);
+            *(shm_address + 1) = 1;
+            sem_post(sem);
 
+            break;
+        case 1:
+            if (*(shm_address))
+                sem_wait(sem);
+            else
+               *(shm_address + 1) = 0;
 
-    switch(*(shm_address+1) ) {
-                                
-    case 0:
-        clear_buffer_memory(shm_address);
-        printf("%s\n", md5[md5_index]);
-        memcpy(shm_address + 2, md5[md5_index], strlen(md5[md5_index]) + 1);
-        *(shm_address + 1) = 1;
-        sem_post(sem);
-        break;
-    case 1:
-        if (*(shm_address))
-            sem_wait(sem);
-        else {
-           *(shm_address + 1) = 0;
-        }
-        break;
-    default:
-        perror("Invalid reading of shared memory");
-        exit(1);
-                            }
+            break;
+        default:
+            perror("Invalid reading of shared memory");
+            exit(1);
+    }
 }
 
 
-void disconnect_view_process(char * shm_address, sem_t * sem) {
-
+void
+disconnect_view_process (char *shm_address, sem_t *sem) {
     if (*shm_address) {
-        sem_post(sem);
         *shm_address = 0;
         *(shm_address + 1) = 0;
+        sem_post(sem);
     }
 }
 
@@ -290,4 +291,3 @@ create_shared_memory (key_t key) {
 
     return shm_address;
 }
-
