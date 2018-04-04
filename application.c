@@ -141,14 +141,13 @@ manage_children (int file_amount, int slave_amount, char **files,
                         pipe_content[bytes_read] = 0;
 
                         if (message_length != 0) {
-                            md5[md5_index] = malloc((message_length + 1)
-                                * sizeof(char));
-                            strcpy(md5[md5_index++], pipe_content);
-                            md5[md5_index - 1][message_length] = 0;
+
+                            writeToMD5(md5,pipe_content,md5_index,message_length);
+                            sendDataToVista(shm_address,sem);
+
                         } else {
                           folder_count++;
                         }
-
                         if (file_index < file_amount) {
                             file_to_write = files[file_index++];
 
@@ -165,45 +164,54 @@ manage_children (int file_amount, int slave_amount, char **files,
 
     end_slaves(outgoing_pipes_fd,slave_amount);
 
-    /* Initialize second shared memory bytes, first byte indicates if View is
-    ** present, second if vista is working(1) or app is (0)
-    */
-    *(shm_address + 1) = 0;
-
-    for (i = 0 ; (i + folder_count) < file_amount ; i++) {
-        switch(*(shm_address+1) ) {
-            case 0:
-                clear_buffer_memory(shm_address);
-                printf("MD5: %s\n", md5[i]);
-                memcpy(shm_address + 2, md5[i], strlen(md5[i]) + 1);
-                *(shm_address + 1) = 1;
-                sem_post(sem);
-                break;
-
-            case 1:
-                if (*(shm_address)) //Vista is connected to shared memory
-                    sem_wait(sem);
-                else
-                    *(shm_address + 1) = 0;
-                break;
-
-            default:
-                perror("Invalid reading of shared memory\n");
-                exit(1);
-        }
-    }
-
-    // Disconnect from the View process.
-    if (*shm_address) {
-        sem_post(sem);
-        *shm_address = 0;
-        *(shm_address + 1) = 0;
-    }
+    disconnectViewProcess(shm_address,sem);
 
     // Free shared memory space and close semaphores.
     close_semaphore(&sem);
     clean_shm(key);
     free_resources(md5, md5_index);
+}
+
+void writeToMD5(char ** md5, char * pipe_content, int md5_index, size_t message_length) {
+
+    md5[md5_index] = malloc((message_length + 1)* sizeof(char));
+    strcpy(md5[md5_index++], pipe_content);
+    md5[md5_index - 1][message_length] = 0;
+
+}
+
+void sendDataToVista(char * shm_address, sem_t * sem) {
+
+    switch(*(shm_address+1) ) {
+                                
+    case 0:
+        clear_buffer_memory(shm_address);
+        printf("MD5: %s\n", md5[i]);
+        memcpy(shm_address + 2, md5[i], strlen(md5[i]) + 1);
+        *(shm_address + 1) = 1;
+        sem_post(sem);
+        break;
+
+    case 1:
+        if (*(shm_address)) //Vista is connected to shared memory
+            sem_wait(sem);
+        else
+           *(shm_address + 1) = 0;
+            break;
+    default:
+        perror("Invalid reading of shared memory\n");
+        exit(1);
+                            }
+}
+
+
+void disconnectViewProcess(char * shm_address, sem_t * sem) {
+
+    if (*shm_address) {
+        sem_post(sem);
+        *shm_address = 0;
+        *(shm_address + 1) = 0;
+    }
 }
 
 
