@@ -15,6 +15,7 @@
 #define STDIN 0
 #define STDOUT 1
 #define MD5_BYTES 32
+#define SYMBOLS 6
 
 int main(int argc, char * argv []) {
     int incoming_pipe_fd;
@@ -65,7 +66,7 @@ md5hash (char *file_name, int length) {
     pid_t pid;
     int status;
     int read;
-    int size = length + MD5_BYTES + 6; // 6 due to the symbols
+    int size = length + MD5_BYTES + SYMBOLS;
     char *md5 = malloc(size);
     int fds[] = {-1, -1};
 

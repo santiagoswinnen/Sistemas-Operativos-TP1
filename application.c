@@ -2,18 +2,13 @@
 #include <dirent.h>
 #include <string.h>
 #include <stdio.h>
-
 #include <unistd.h>
 #include <sys/types.h>
-//shared memory includes
 #include <sys/shm.h>
 #include <sys/ipc.h>
-
-//semaphore includes
 #include <semaphore.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-
 #include "semaphoreUtilities.h"
 #include "application.h"
 #include "pipeUtilities.h"
@@ -52,16 +47,11 @@ application_main (int file_amount, char **files) {
     dup2(results_fd, STDERR);
     printf("%s", separator);
 
-    // Remove previously created memory
-    // clean_shm(parent_pid);
-    // Create shared memory
     shm_address = create_shared_memory(parent_pid);
-    //Indicates there is no vista yet
     *shm_address = 0;
     *(shm_address + 1) = 0;
     open_semaphore(&sem);
 
-    // Give SLEEP_TIME seconds for View process to start.
     sleep(SLEEP_TIME);
 
     if (file_amount == 0)
@@ -131,6 +121,7 @@ manage_children (int file_amount, int slave_amount, char **files,
     fd_set readfds;
 
     while (md5_index + folder_count < file_amount) {
+
         FD_ZERO(&readfds);
 
         for (i = 0; i < slave_amount; i++)
@@ -181,7 +172,6 @@ manage_children (int file_amount, int slave_amount, char **files,
 
     disconnect_view_process(shm_address,sem);
 
-    // Free shared memory space and close semaphores.
     close_semaphore(&sem);
     clean_shm(key);
     free_resources(md5, md5_index);
@@ -208,7 +198,7 @@ void send_data_to_vista(char * shm_address, sem_t * sem, char ** md5, int md5_in
         sem_post(sem);
         break;
     case 1:
-        if (*(shm_address)) //Vista is connected to shared memory
+        if (*(shm_address))
             sem_wait(sem);
         else {
            *(shm_address + 1) = 0;
@@ -258,7 +248,6 @@ clean_shm (key_t key) {
     char str[100];
 
     sprintf(str,"ipcrm -M %d", (int)key);
-    // Execute shell command to clean memory.
     system(str);
 }
 
