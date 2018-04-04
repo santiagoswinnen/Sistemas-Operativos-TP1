@@ -156,7 +156,7 @@ manage_children (int file_amount, int slave_amount, char **files,
                         if (message_length != 0) {
 
                             writeToMD5(md5,pipe_content,md5_index,message_length);
-                            sendDataToVista(shm_address,sem,md5,md5_index);
+                            sendDataToVista(shm_address,sem,md5,md5_index,file_amount,folder_count);
 
                         } else {
                           folder_count++;
@@ -193,7 +193,7 @@ void writeToMD5(char ** md5, char * pipe_content, int md5_index, size_t message_
 
 }
 
-void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index) {
+void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index,int file_amount, int folder_count) {
 
 
     switch(*(shm_address+1) ) {
@@ -208,9 +208,12 @@ void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index
     case 1:
         if (*(shm_address)) //Vista is connected to shared memory
             sem_wait(sem);
-        else
+        else {
            *(shm_address + 1) = 0;
-            break;
+            if((md5_index + folder_count + 1 == file_amount))
+                sem_post(sem);
+        }
+        break;
     default:
         perror("Invalid reading of shared memory\n");
         exit(1);
