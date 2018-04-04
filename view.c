@@ -44,7 +44,10 @@ int main(int argc, char * argv[]) {
 	            sem_post(sem);
 	            break;
 	        case 0:
-	            sem_wait(sem);
+	            if(*shm_address) {
+	            	sem_wait(sem);	
+	            }
+	            
 	            break;
 	        default:
 	            perror("Invalid reading of shared memory\n");
