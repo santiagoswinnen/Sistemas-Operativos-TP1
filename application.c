@@ -191,7 +191,6 @@ void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index
         *(shm_address + 1) = 1;
         sem_post(sem);
         break;
-
     case 1:
         if (*(shm_address)) //Vista is connected to shared memory
             sem_wait(sem);
