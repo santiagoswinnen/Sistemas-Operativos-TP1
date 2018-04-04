@@ -24,140 +24,138 @@
 #define CHAR 1
 #define INT 1
 #define SHMSIZE (MD5_LEN + FILENAME_MAX)
-#define ERROR_MSG "Error creating shared memory"
-#define SEM_ERRORM "Error creating semaphore"
+#define ERROR_MSG "Error creating shared memory\n"
+#define SEM_ERROR "Error creating semaphore\n"
 #define SLEEP_TIME 15
 
 
 int
-applicationMain (int fileAmount, char **files) {
+application_main (int file_amount, char **files) {
     int i;
-    int slaveAmount;
-    char **outgoingPipeNames, **incomingPipeNames;
-    int *outgoingPipesFd, *incomingPipesFd;
-    char *shmAddress;
-    pid_t parentPid = getpid();
+    int slave_amount;
+    char **outgoing_pipe_names, **incoming_pipe_names;
+    int *outgoing_pipes_fd, *incoming_pipes_fd;
+    char *shm_address;
+    pid_t parent_pid = getpid();
     sem_t *sem;
-    //Remove previously created memory
-    //cleanShm(parentPid);
-    //Create shared memory
-    shmAddress = createSharedMemory(parentPid);
+    // Remove previously created memory
+    // clean_shm(parent_pid);
+    // Create shared memory
+    shm_address = create_shared_memory(parent_pid);
     //Indicates there is no vista yet
-    *shmAddress = 0;
-    *(shmAddress + 1) = 0;
-    openSemaphore(&sem);
+    *shm_address = 0;
+    *(shm_address + 1) = 0;
+    open_semaphore(&sem);
 
     // Give SLEEP_TIME seconds for View process to start.
     sleep(SLEEP_TIME);
 
-    if (fileAmount == 0)
+    if (file_amount == 0)
         return 0;
 
-    slaveAmount = (fileAmount > SLAVE_NUM) ? SLAVE_NUM : fileAmount;
-    outgoingPipeNames = generateOutgoingPipeNames(slaveAmount);
-    incomingPipeNames = generateIncomingPipeNames(slaveAmount);
-    outgoingPipesFd = malloc(slaveAmount * sizeof(int));
-    incomingPipesFd = malloc(slaveAmount * sizeof(int));
+    slave_amount = (file_amount > SLAVE_NUM) ? SLAVE_NUM : file_amount;
+    outgoing_pipe_names = generate_outgoing_pipe_names(slave_amount);
+    incoming_pipe_names = generate_incoming_pipe_names(slave_amount);
+    outgoing_pipes_fd = malloc(slave_amount * sizeof(int));
+    incoming_pipes_fd = malloc(slave_amount * sizeof(int));
 
-    createSlaves(parentPid, slaveAmount, outgoingPipeNames, incomingPipeNames,
-        outgoingPipesFd, incomingPipesFd);
+    create_slaves(parent_pid, slave_amount, outgoing_pipe_names,
+        incoming_pipe_names, outgoing_pipes_fd, incoming_pipes_fd);
 
-    for (i = 0; i < slaveAmount; i++) {
-        if (isFile(files[i]))
-            writePipe(outgoingPipesFd[i], files[i]);
+    for (i = 0; i < slave_amount; i++) {
+        if (is_file(files[i]))
+            write_pipe(outgoing_pipes_fd[i], files[i]);
         else
-            writePipe(outgoingPipesFd[i], "");
+            write_pipe(outgoing_pipes_fd[i], "");
     }
 
-    manageChildren(fileAmount, slaveAmount, files, outgoingPipesFd,
-        incomingPipesFd, shmAddress, parentPid, sem);
+    manage_children(file_amount, slave_amount, files, outgoing_pipes_fd,
+        incoming_pipes_fd, shm_address, parent_pid, sem);
 
-    closePipes(incomingPipesFd, slaveAmount);
-    closePipes(outgoingPipesFd, slaveAmount);
+    closePipes(incoming_pipes_fd, slave_amount);
+    closePipes(outgoing_pipes_fd, slave_amount);
 
-    freeResources(outgoingPipeNames, slaveAmount);
-    freeResources(incomingPipeNames, slaveAmount);
-    free(incomingPipesFd);
-    free(outgoingPipesFd);
+    free_resources(outgoing_pipe_names, slave_amount);
+    free_resources(incoming_pipe_names, slave_amount);
+    free(incoming_pipes_fd);
+    free(outgoing_pipes_fd);
 
     return 0;
 }
 
 void
-createSlaves (int parentPid, int slaveAmount, char **outgoingPipeNames,
-    char **incomingPipeNames, int *outgoingFds, int *incomingFds) {
-    int i;
-
-    for (i = 0; (i < slaveAmount) && (getpid() == parentPid); i++) {
+create_slaves (int parent_pid, int slave_amount, char **outgoing_pipe_names,
+    char **incoming_pipe_names, int *outgoing_fds, int *incoming_fds) {
+    for (int i = 0; (i < slave_amount) && (getpid() == parent_pid); i++) {
         pid_t newPid = fork();
 
         if (newPid == 0)
-            execl("./slave", "./slave", outgoingPipeNames[i],
-            incomingPipeNames[i], (char *)NULL);
+            execl("./slave", "./slave", outgoing_pipe_names[i],
+            incoming_pipe_names[i], (char *)NULL);
 
-        createPipe(outgoingPipeNames[i], incomingPipeNames[i], outgoingFds,
-            incomingFds, i);
+        create_double_pipe(outgoing_pipe_names[i], incoming_pipe_names[i],
+            outgoing_fds, incoming_fds, i);
     }
 }
 
 
 void
-manageChildren (int fileAmount, int slaveAmount, char **files,
-    int *outgoingPipesFd, int *incomingPipesFd, char *shmAddress, key_t key,
+manage_children (int file_amount, int slave_amount, char **files,
+    int *outgoing_pipes_fd, int *incoming_pipes_fd, char *shm_address, key_t key,
     sem_t *sem) {
-    ssize_t bytesRead;
-    size_t messageLength;
+    ssize_t bytes_read;
+    size_t message_length;
     int i;
-    int fileIndex = slaveAmount;
-    char pipeContent[MD5_LEN + FILENAME_MAX + 2];
-    char lengthRead[4];
-    char **md5 = malloc(fileAmount * sizeof(char *));
-    int md5index = 0, zeroCount = 0;
-    int nfds = biggestDescriptor(incomingPipesFd, slaveAmount);
-    int selectRet;
-    char * fileToWrite;
+    int file_index = slave_amount;
+    char pipe_content[MD5_LEN + FILENAME_MAX + 2];
+    char length_read[4];
+    char **md5 = malloc(file_amount * sizeof(char *));
+    int md5_index = 0, folder_count = 0;
+    int nfds = biggest_descriptor(incoming_pipes_fd, slave_amount);
+    int select_ret;
+    char *file_to_write;
     fd_set readfds;
 
-    while (md5index + zeroCount < fileAmount) {
+    while (md5_index + folder_count < file_amount) {
         FD_ZERO(&readfds);
 
-        for (i = 0; i < slaveAmount; i++)
-            FD_SET(incomingPipesFd[i], &readfds);
+        for (i = 0; i < slave_amount; i++)
+            FD_SET(incoming_pipes_fd[i], &readfds);
 
-        selectRet = select(nfds, &readfds, NULL, NULL, NULL);
+        select_ret = select(nfds, &readfds, NULL, NULL, NULL);
 
-        if (selectRet == -1) {
+        if (select_ret == -1) {
             perror("Error at select function\n");
-        } else if (selectRet > 0){
-            for (i = 0; i < slaveAmount; i++) {
-                if (FD_ISSET(incomingPipesFd[i], &readfds) &&
-                    ((bytesRead = read(incomingPipesFd[i], lengthRead, 3))
+        } else if (select_ret > 0){
+            for (i = 0; i < slave_amount; i++) {
+                if (FD_ISSET(incoming_pipes_fd[i], &readfds) &&
+                    ((bytes_read = read(incoming_pipes_fd[i], length_read, 3))
                     >= 0)) {
 
-                    lengthRead[bytesRead] = 0;
+                    length_read[bytes_read] = 0;
 
-                    if (bytesRead == 3) {
-                        messageLength = (size_t) atoi(lengthRead); //NOLINT
-                        bytesRead = read(incomingPipesFd[i], pipeContent,
-                            messageLength);
-                        pipeContent[bytesRead] = 0;
+                    if (bytes_read == 3) {
+                        message_length = (size_t) atoi(length_read); //NOLINT
+                        bytes_read = read(incoming_pipes_fd[i], pipe_content,
+                            message_length);
+                        pipe_content[bytes_read] = 0;
 
-                        if (messageLength != 0) {
-                            md5[md5index] = malloc((messageLength + 1)
+                        if (message_length != 0) {
+                            md5[md5_index] = malloc((message_length + 1)
                                 * sizeof(char));
-                            strcpy(md5[md5index++], pipeContent);
-                            md5[md5index - 1][messageLength] = 0;
+                            strcpy(md5[md5_index++], pipe_content);
+                            md5[md5_index - 1][message_length] = 0;
                         } else {
-                          zeroCount++;
+                          folder_count++;
                         }
 
-                        if (fileIndex < fileAmount) {
-                            fileToWrite = files[fileIndex++];
+                        if (file_index < file_amount) {
+                            file_to_write = files[file_index++];
 
-                            if (isFile(fileToWrite))
-                                writePipe(outgoingPipesFd[i], fileToWrite);
+                            if (is_file(file_to_write))
+                                write_pipe(outgoing_pipes_fd[i], file_to_write);
                             else
-                                writePipe(outgoingPipesFd[i], "");
+                                write_pipe(outgoing_pipes_fd[i], "");
                         }
                     }
                 }
@@ -165,28 +163,28 @@ manageChildren (int fileAmount, int slaveAmount, char **files,
         }
     }
 
-    endSlaves(outgoingPipesFd,slaveAmount);
+    end_slaves(outgoing_pipes_fd,slave_amount);
 
     /* Initialize second shared memory bytes, first byte indicates if View is
     ** present, second if vista is working(1) or app is (0)
     */
-    *(shmAddress + 1) = 0;
+    *(shm_address + 1) = 0;
 
-    for (i = 0 ; (i + zeroCount) < fileAmount ; i++) {
-        switch(*(shmAddress+1) ) {
+    for (i = 0 ; (i + folder_count) < file_amount ; i++) {
+        switch(*(shm_address+1) ) {
             case 0:
-                clearBufferMemory(shmAddress);
+                clear_buffer_memory(shm_address);
                 printf("MD5: %s\n", md5[i]);
-                memcpy(shmAddress + 2, md5[i], strlen(md5[i]) + 1);
-                *(shmAddress + 1) = 1;
+                memcpy(shm_address + 2, md5[i], strlen(md5[i]) + 1);
+                *(shm_address + 1) = 1;
                 sem_post(sem);
                 break;
 
             case 1:
-                if (*(shmAddress)) //Vista is connected to shared memory
+                if (*(shm_address)) //Vista is connected to shared memory
                     sem_wait(sem);
                 else
-                    *(shmAddress + 1) = 0;
+                    *(shm_address + 1) = 0;
                 break;
 
             default:
@@ -195,24 +193,24 @@ manageChildren (int fileAmount, int slaveAmount, char **files,
         }
     }
 
-    //Disconnect from vista process
-    if (*shmAddress) {
+    // Disconnect from the View process.
+    if (*shm_address) {
         sem_post(sem);
-        *shmAddress = 0;
-        *(shmAddress + 1) = 0;
+        *shm_address = 0;
+        *(shm_address + 1) = 0;
     }
 
-    //Free shared memory space and close sempaphores
-    closeSemaphore(&sem);
-    cleanShm(key);
-    freeResources(md5, md5index);
+    // Free shared memory space and close semaphores.
+    close_semaphore(&sem);
+    clean_shm(key);
+    free_resources(md5, md5_index);
 
     return 0;
 }
 
 
 int
-isFile (const char *file) {
+is_file (const char *file) {
     struct stat buf;
 
     stat(file, &buf);
@@ -222,68 +220,65 @@ isFile (const char *file) {
 
 
 int
-biggestDescriptor (const int *descriptors, int length) {
+biggest_descriptor (const int *descriptors, int length) {
     int biggest = 0;
-    int i;
 
-    for (i = 0 ; i < length; i++)
+    for (int i = 0 ; i < length; i++)
         if(descriptors[i] > biggest)
             biggest = descriptors[i];
 
-    biggest += 1;
-
-    return biggest;
+    return biggest + 1;
 }
 
 
 void
-cleanShm (key_t key) {
+clean_shm (key_t key) {
     char str[100];
 
     sprintf(str,"ipcrm -M %d", (int)key);
-    //Execute shell command to clean memory
+    // Execute shell command to clean memory.
     system(str);
 }
 
 
 void
-clearBufferMemory (char *address) {
+clear_buffer_memory (char *address) {
     for (int i = 2 ; i < SHMSIZE ; i++)
         *((char *)(address + i)) = 0;
 }
 
 
 char *
-createSharedMemory (key_t key) {
-    char * shmAddress;
-    int shmid;
+create_shared_memory (key_t key) {
+    char * shm_address;
+    int shm_id;
 
-    if ((shmid = shmget(key, SHMSIZE, 0666 | IPC_CREAT | IPC_EXCL )) < 0) {
+    if ((shm_id = shmget(key, SHMSIZE, 0666 | IPC_CREAT | IPC_EXCL )) < 0) {
         perror(ERROR_MSG);
         exit(1);
     }
 
-    if ((shmAddress = shmat(shmid, NULL, 0)) == (char *)-1 ) {
+    if ((shm_address = shmat(shm_id, NULL, 0)) == (char *)-1 ) {
         perror(ERROR_MSG);
         exit(1);
     }
 
-    return shmAddress;
+    return shm_address;
 }
 
 
 void
-openSemaphore (sem_t **semaphorePtr) {
-    if ((*semaphorePtr = sem_open("/mySemaphore", O_CREAT, 0660, 0))
+open_semaphore (sem_t **semaphore_ptr) {
+    if ((*semaphore_ptr = sem_open("/my_semaphore", O_CREAT, 0660, 0))
         == SEM_FAILED) {
-        perror(SEM_ERRORM);
+        perror(SEM_ERROR);
         exit(1);
     }
 }
 
 
 void
-closeSemaphore (sem_t **semaphorePtr) {
-    sem_unlink("/mySemaphore");
-    sem_close(*semaphorePtr);
+close_semaphore (sem_t **semaphore_ptr) {
+    sem_unlink("/my_semaphore");
+    sem_close(*semaphore_ptr);
 }

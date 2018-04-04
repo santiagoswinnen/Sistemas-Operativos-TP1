@@ -15,51 +15,51 @@
 #define MD5_BYTES 32
 
 int main(int argc, char * argv []) {
-    int incomingPipeFd;
-    int outgoingPipeFd;
-    char pipeData[MAX_FILENAME];
-    char lengthRead[4];
+    int incoming_pipe_fd;
+    int outgoing_pipe_fd;
+    char pipe_data[MAX_FILENAME];
+    char length_read[4];
     char *md5 = NULL;
-    int bytesRead;
-    int endSignalReceived = FALSE;
-    size_t bytesToRead;
-    char *incomingPipeName = argv[1];
-    char *outgoingPipeName = argv[2];
+    int bytes_read;
+    int end_signal_received = FALSE;
+    size_t bytes_to_read;
+    char *incoming_pipe_name = argv[1];
+    char *outgoing_pipe_name = argv[2];
 
-    incomingPipeFd = open(incomingPipeName, O_RDONLY);
-    outgoingPipeFd = open(outgoingPipeName, O_WRONLY);
+    incoming_pipe_fd = open(incoming_pipe_name, O_RDONLY);
+    outgoing_pipe_fd = open(outgoing_pipe_name, O_WRONLY);
 
     do {
-        bytesRead = (int)read(incomingPipeFd, lengthRead, 3);
-        lengthRead[bytesRead] = 0;
+        bytes_read = (int)read(incoming_pipe_fd, length_read, 3);
+        length_read[bytes_read] = 0;
 
-        if ((bytesRead == 1) && (pipeData[0] == ':')) {
-            endSignalReceived = TRUE;
-        } else if (bytesRead == 3) {
-            bytesToRead = (size_t)atoi(lengthRead);
-            bytesRead = (int)read(incomingPipeFd, pipeData, bytesToRead);
-            pipeData[bytesRead] = 0;
+        if ((bytes_read == 1) && (pipe_data[0] == ':')) {
+            end_signal_received = TRUE;
+        } else if (bytes_read == 3) {
+            bytes_to_read = (size_t)atoi(length_read);
+            bytes_read = (int)read(incoming_pipe_fd, pipe_data, bytes_to_read);
+            pipe_data[bytes_read] = 0;
 
-            if (bytesRead != 0) {
-              md5 = md5hash(pipeData, bytesRead);
-              writePipe(outgoingPipeFd, md5);
+            if (bytes_read != 0) {
+              md5 = md5hash(pipe_data, bytes_read);
+              writePipe(outgoing_pipe_fd, md5);
             } else {
-              writePipe(outgoingPipeFd, "");
+              writePipe(outgoing_pipe_fd, "");
             }
-        } else if (bytesRead == 0)
-            endSignalReceived=TRUE;
+        } else if (bytes_read == 0)
+            end_signal_received=TRUE;
         }
-    } while(!endSignalReceived);
+    } while(!end_signal_received);
 
-    close(incomingPipeFd);
-    close(outgoingPipeFd);
+    close(incoming_pipe_fd);
+    close(outgoing_pipe_fd);
 
     if (md5 != NULL)
         free(md5);
 }
 
 char *
-md5hash (char *fileName, int length) {
+md5hash (char *file_name, int length) {
     pid_t pid;
     int status;
     int read;
@@ -72,7 +72,7 @@ md5hash (char *fileName, int length) {
     if ((pid = fork()) == 0) {
         close(fds[READ_END]);
         dup2(fds[WRITE_END], 1); // 1 == stdout
-        char *args[3] = {"md5sum", fileName, NULL};
+        char *args[3] = {"md5sum", file_name, NULL};
         execvp("md5sum", args);
         perror("Could not run md5sum.\n");
     }

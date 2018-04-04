@@ -1,7 +1,3 @@
-//
-// Created by santiago on 30/03/18.
-//
-
 #include <unistd.h>
 #include <glob.h>
 #include <stdlib.h>
@@ -11,113 +7,119 @@
 #include <sys/stat.h>
 #include "pipeUtilities.h"
 
-void writePipe(int fd, char * file) {
-
-    size_t messageLength;
-    messageLength = strlen(file);
-    char * lengthInChars = numberToThreeDigitArray(messageLength);
-    int bytesWritten = 0;
-
-    do {
-        bytesWritten += write(fd,lengthInChars,3);
-    } while(bytesWritten < 3);
-
-    bytesWritten = 0;
+void
+write_pipe (int fd, char * file) {
+    size_t message_length = strlen(file);
+    char * length_in_chars = number_to_three_digit_array(message_length);
+    int bytes_written = 0;
 
     do {
-        bytesWritten +=  write(fd,file,strlen(file));
-    } while(bytesWritten < messageLength);
+        bytes_written += write(fd, length_in_chars, 3);
+    } while (bytes_written < 3);
 
-    free(lengthInChars);
+    bytes_written = 0;
+
+    do {
+        bytes_written +=  write(fd, file, strlen(file));
+    } while (bytes_written < message_length);
+
+    free(length_in_chars);
 }
 
-char * numberToThreeDigitArray(size_t num) {
+char *
+number_to_three_digit_array (size_t num) {
+    char *ret = malloc(3 * sizeof(char));
 
-    char * ret = malloc(3* sizeof(char));
+    ret[0] = (char)('0' + num/100);
+    ret[1] = (char)('0' + num/10);
+    ret[2] = (char)('0' + num%10);
 
-    ret[0] = (char) ('0' + num/100);
-    ret[1] = (char) ('0' + num/10);
-    ret[2] = (char) ('0' + num%10);
     return ret;
 }
 
-void closePipes(int * fds, int amount) {
-    int i;
-    for(i = 0; i < amount; i++) {
+void
+close_pipes (int *fds, int amount) {
+    for(int i = 0; i < amount; i++)
         close(fds[i]);
-    }
 }
 
-void freeResources(char ** array, int size ) {
 
-    int i;
-
-    for(i = 0; i < size; i++ ) {
+void
+free_resources (char **array, int size ) {
+    for (int i = 0; i < size; i++)
         free(array[i]);
-    }
+
     free(array);
 }
 
-void endSlaves(int * fds, int amount) {
 
-    char * endMessage = malloc(sizeof(char));
-    int i;
+void
+end_slaves (int *fds, int amount) {
+    char *endMessage = malloc(sizeof(char));
 
     *endMessage = ':';
-    for(i = 0; i < amount; i++) {
-        write(fds[i],endMessage ,sizeof(char));
+
+    for(int i = 0; i < amount; i++) {
+        write(fds[i], endMessage, sizeof(char));
     }
+
     free(endMessage);
 }
 
-void createPipe(char * outgoingPipeName ,char * incomingPipeName, int * outgoingFds,
-                int * incomingFds, int index) {
 
-    int mkfifoRet [2];
+void
+create_double_pipe (char *outgoing_pipe_name, char * incoming_pipe_name,
+    int *outgoing_fds, int *incoming_fds, int index) {
+    int mkfifoRet[2];
 
-    mkfifoRet[0] = mkfifo(outgoingPipeName,0777);
-    if(mkfifoRet[0] == -1) {
-        perror("Pipe could not be created");
-        exit(1);
-    }
-    mkfifoRet[1] = mkfifo(incomingPipeName,0777);
-    if(mkfifoRet[1] == -1) {
-        perror("Pipe could not be created");
-        exit(1);
-    }
+    create_pipe(outgoing_pipe_name, mkfifoRet, 0);
+    create_pipe(incoming_pipe_name, mkfifoRet, 1);
 
-    outgoingFds[index] = open(outgoingPipeName, O_WRONLY);
-    incomingFds[index] = open(incomingPipeName, O_RDONLY);
+    outgoing_fds[index] = open(outgoing_pipe_name, O_WRONLY);
+    incoming_fds[index] = open(incoming_pipe_name, O_RDONLY);
 }
 
-char ** generateOutgoingPipeNames(int slaves) {
 
-    char pipeName [7] = "pipe";
-    char ** ret = malloc(slaves* sizeof(char*));
-    int i;
+void
+create_pipe (char *pipe_name, int *mkfifo_ret, int pipe_direction) {
+    mkfifo_ret[pipe_direction] = mkfifo(pipe_name, 0777);
 
-    for(i = 0; i < slaves; i++) {
-        pipeName[4] = (char)('0'+i/10);
-        pipeName[5] = (char)('0'+i%10);
-        pipeName[6] = 0;
-        ret[i] = malloc(sizeof(char)*11);
-        strcpy(ret[i],pipeName);
+    if (mkfifo_ret[pipe_direction] == -1) {
+        perror("Pipe could not be created\n");
+        exit(1);
     }
+}
+
+
+char **
+generate_outgoing_pipe_names (int slaves_amount) {
+    char pipe_name [7] = "pipe";
+    char ** ret = malloc(slaves_amount * sizeof(char*));
+
+    for(int i = 0; i < slaves_amount; i++) {
+        pipe_name[4] = (char)('0' + i/10);
+        pipe_name[5] = (char)('0' + i%10);
+        pipe_name[6] = 0;
+        ret[i] = malloc(sizeof(char) * 11);
+        strcpy(ret[i], pipe_name);
+    }
+
     return ret;
 }
 
-char ** generateIncomingPipeNames(int slaves) {
 
-    char pipeName [10] = "retPipe";
-    char ** ret = malloc(slaves* sizeof(char*));
-    int i;
+char **
+generate_incoming_pipe_names (int slaves_amount) {
+    char pipe_name[10] = "retPipe";
+    char **ret = malloc(slaves_amount * sizeof(char*));
 
-    for(i = 0; i < slaves; i++) {
-        pipeName[7] = (char)('0'+i/10);
-        pipeName[8] = (char)('0'+i%10);
-        pipeName[9] = 0;
-        ret[i] = malloc(sizeof(char)*11);
-        strcpy(ret[i],pipeName);
+    for (int i = 0; i < slaves_amount; i++) {
+        pipe_name[7] = (char)('0' + i/10);
+        pipe_name[8] = (char)('0' + i%10);
+        pipe_name[9] = 0;
+        ret[i] = malloc(sizeof(char) * 11);
+        strcpy(ret[i], pipe_name);
     }
+
     return ret;
 }

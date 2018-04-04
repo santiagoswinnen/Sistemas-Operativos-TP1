@@ -4,16 +4,17 @@
 #include <sys/types.h>
 
 
-int applicationMain (int fileAmount, char **files);
-void manageChildren (int fileAmount, int slaveAmount, char **files,
-    int *pipesFd, int *returningPipesFd, char *shm_address, key_t key,
-    sem_t *sem);
-void createSlaves (int parentPid, int slaveAmount, char **outgoingPipeNames,
-    char **incomingPipeNames, int *outgoingFds, int *incomingFds);
-int biggestDescriptor (const int *descriptors, int length);
-int isFile (const char *file);
-void cleanShm(key_t key);
-char *createSharedMemory (key_t key);
-void clearBufferMemory (char *address);
-void openSemaphore (sem_t **semaphorePtr);
-void closeSemaphore (sem_t **semaphorePtr);
+int application_main (int file_amount, char **files);
+void manage_children (int file_amount, int slave_amount, char **files,
+    int *outgoing_pipes_fd, int *incoming_pipes_fd, char *shm_address,
+    key_t key, sem_t *sem);
+void create_slaves (int parent_pid, int slave_amount,
+    char **outgoing_pipe_names, char **incoming_pipe_names, int *outgoing_fds,
+    int *incoming_fds);
+int biggest_descriptor (const int *descriptors, int length);
+int is_file (const char *file);
+void clean_shm(key_t key);
+char *create_shared_memory (key_t key);
+void clear_buffer_memory (char *address);
+void open_semaphore (sem_t **semaphore_ptr);
+void close_semaphore (sem_t **semaphore_ptr);
