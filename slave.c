@@ -67,9 +67,13 @@ md5hash (char *file_name, int length) {
     int status;
     int read;
     int size = length + MD5_BYTES + SYMBOLS;
-    char *md5 = malloc(size);
+    char *md5;
     int fds[] = {-1, -1};
 
+    if((md5 = malloc(size)) == NULL) {
+        perror("Memory could not be allocated");
+        exit(1);
+    }
     pipe(fds);
 
     if ((pid = fork()) == 0) {

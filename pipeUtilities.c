@@ -28,7 +28,12 @@ write_pipe (int fd, char * file) {
 
 char *
 number_to_three_digit_array (size_t num) {
-    char *ret = malloc(3 * sizeof(char));
+    char *ret;
+
+    if((ret = malloc(3 * sizeof(char))) == NULL) {
+        perror("Memory could not be allocated");
+        exit(1);
+    }
 
     ret[0] = (char)('0' + num/100);
     ret[1] = (char)('0' + num/10);
@@ -57,7 +62,12 @@ free_resources (char **array, int size ) {
 
 void
 end_slaves (int *fds, int amount) {
-    char *endMessage = malloc(sizeof(char));
+    char *endMessage;
+
+    if((endMessage = malloc(sizeof(char))) == NULL) {
+        perror("Memory could not be allocated");
+        exit(1);
+    }
 
     *endMessage = ':';
 
@@ -95,13 +105,21 @@ create_double_pipe (char *outgoing_pipe_name, char * incoming_pipe_name,
 char **
 generate_outgoing_pipe_names (int slaves_amount) {
     char pipe_name [7] = "pipe";
-    char ** ret = malloc(slaves_amount * sizeof(char*));
+    char ** ret;
+
+    if((ret = malloc(slaves_amount * sizeof(char*))) == NULL) {
+        perror("Memory could not be allocated");
+        exit(1);
+    };
 
     for(int i = 0; i < slaves_amount; i++) {
         pipe_name[4] = (char)('0' + i/10);
         pipe_name[5] = (char)('0' + i%10);
         pipe_name[6] = 0;
-        ret[i] = malloc(sizeof(char) * 11);
+        if((ret[i] = malloc(sizeof(char) * 11)) == NULL) {
+            perror("Memory could not be allocated");
+            exit(1);
+        }
         strcpy(ret[i], pipe_name);
     }
 
@@ -112,13 +130,20 @@ generate_outgoing_pipe_names (int slaves_amount) {
 char **
 generate_incoming_pipe_names (int slaves_amount) {
     char pipe_name[10] = "retPipe";
-    char **ret = malloc(slaves_amount * sizeof(char*));
+    char ** ret;
 
+    if((ret = malloc(slaves_amount * sizeof(char*))) == NULL) {
+        perror("Memory could not be allocated");
+        exit(1);
+    };
     for (int i = 0; i < slaves_amount; i++) {
         pipe_name[7] = (char)('0' + i/10);
         pipe_name[8] = (char)('0' + i%10);
         pipe_name[9] = 0;
-        ret[i] = malloc(sizeof(char) * 11);
+        if((ret[i] = malloc(sizeof(char) * 11)) == NULL) {
+            perror("Memory could not be allocated");
+            exit(1);
+        }
         strcpy(ret[i], pipe_name);
     }
 

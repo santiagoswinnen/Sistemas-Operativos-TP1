@@ -60,8 +60,15 @@ application_main (int file_amount, char **files) {
     slave_amount = (file_amount > SLAVE_NUM) ? SLAVE_NUM : file_amount;
     outgoing_pipe_names = generate_outgoing_pipe_names(slave_amount);
     incoming_pipe_names = generate_incoming_pipe_names(slave_amount);
-    outgoing_pipes_fd = malloc(slave_amount * sizeof(int));
-    incoming_pipes_fd = malloc(slave_amount * sizeof(int));
+    if((outgoing_pipes_fd = malloc(slave_amount * sizeof(int))) == NULL) {
+        perror("Memory could not be allocated");
+        exit(1);
+    }
+    if((incoming_pipes_fd = malloc(slave_amount * sizeof(int))) == NULL) {
+        perror("Memory could not be allocated");
+        exit(1);
+    }
+
 
     create_slaves(parent_pid, slave_amount, outgoing_pipe_names,
         incoming_pipe_names, outgoing_pipes_fd, incoming_pipes_fd);
@@ -113,13 +120,17 @@ manage_children (int file_amount, int slave_amount, char **files,
     int file_index = slave_amount;
     char pipe_content[MD5_LEN + FILENAME_MAX + 2];
     char length_read[4];
-    char **md5 = malloc(file_amount * sizeof(char *));
+    char **md5;
     int md5_index = 0, folder_count = 0;
     int nfds = biggest_descriptor(incoming_pipes_fd, slave_amount);
     int select_ret;
     char *file_to_write;
     fd_set readfds;
 
+    if((md5 = malloc(file_amount * sizeof(char *))) == NULL) {
+        perror("Memory could not be allocated");
+        exit(1);
+    }
     while (md5_index + folder_count < file_amount) {
 
         FD_ZERO(&readfds);
