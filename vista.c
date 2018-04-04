@@ -8,8 +8,10 @@
 #include <sys/shm.h>
 #include <sys/ipc.h>
 #include <fcntl.h>
-#include "vista.h"
 #include <sys/param.h>
+#include "vista.h"
+#include "semaphoreUtilities.h"
+
 
 #define SEM_ERRORM "Error creating semaphore"
 
@@ -75,16 +77,3 @@ char * getSharedMemory(key_t key) {
 	return address;
 }
 
-void openSemaphore(sem_t ** semaphorePtr ) {
-
-    if((*semaphorePtr = sem_open("/my_semaphore", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        perror(SEM_ERRORM);
-        exit(1);
-    }
-}
-
-void closeSemaphore(sem_t ** semaphorePtr) {
-
-    sem_unlink("/my_semaphore");
-    sem_close(*semaphorePtr);
-}

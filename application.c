@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include "semaphoreUtilities.h"
 #include "application.h"
 #include "pipeUtilities.h"
 
@@ -155,8 +156,8 @@ manage_children (int file_amount, int slave_amount, char **files,
 
                         if (message_length != 0) {
 
-                            writeToMD5(md5,pipe_content,md5_index,message_length);
-                            sendDataToVista(shm_address,sem,md5,md5_index,file_amount,folder_count);
+                            write_to_md5(md5,pipe_content,md5_index,message_length);
+                            send_data_to_vista(shm_address,sem,md5,md5_index,file_amount,folder_count);
                             md5_index++;
 
                         } else {
@@ -178,7 +179,7 @@ manage_children (int file_amount, int slave_amount, char **files,
 
     end_slaves(outgoing_pipes_fd,slave_amount);
 
-    disconnectViewProcess(shm_address,sem);
+    disconnect_view_process(shm_address,sem);
 
     // Free shared memory space and close semaphores.
     close_semaphore(&sem);
@@ -186,7 +187,7 @@ manage_children (int file_amount, int slave_amount, char **files,
     free_resources(md5, md5_index);
 }
 
-void writeToMD5(char ** md5, char * pipe_content, int md5_index, size_t message_length) {
+void write_to_md5(char ** md5, char * pipe_content, int md5_index, size_t message_length) {
 
     md5[md5_index] = malloc((message_length + 1)* sizeof(char));
     strcpy(md5[md5_index], pipe_content); 
@@ -194,7 +195,7 @@ void writeToMD5(char ** md5, char * pipe_content, int md5_index, size_t message_
 
 }
 
-void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index,int file_amount, int folder_count) {
+void send_data_to_vista(char * shm_address, sem_t * sem, char ** md5, int md5_index,int file_amount, int folder_count) {
 
 
     switch(*(shm_address+1) ) {
@@ -220,7 +221,7 @@ void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index
 }
 
 
-void disconnectViewProcess(char * shm_address, sem_t * sem) {
+void disconnect_view_process(char * shm_address, sem_t * sem) {
 
     if (*shm_address) {
         sem_post(sem);
@@ -287,19 +288,3 @@ create_shared_memory (key_t key) {
     return shm_address;
 }
 
-
-void
-open_semaphore (sem_t **semaphore_ptr) {
-    if ((*semaphore_ptr = sem_open("/my_semaphore", O_CREAT, 0660, 0))
-        == SEM_FAILED) {
-        perror(SEM_ERROR);
-        exit(1);
-    }
-}
-
-
-void
-close_semaphore (sem_t **semaphore_ptr) {
-    sem_unlink("/my_semaphore");
-    sem_close(*semaphore_ptr);
-}

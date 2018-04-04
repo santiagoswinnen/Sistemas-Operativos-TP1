@@ -9,6 +9,7 @@
 #include <sys/ipc.h>
 #include <fcntl.h>
 #include "view.h"
+#include "semaphoreUtilities.h"
 #include <semaphore.h>
 #include <sys/param.h>
 
@@ -76,18 +77,4 @@ get_shared_memory (key_t key) {
 }
 
 
-void
-open_semaphore (sem_t **semaphore_ptr ) {
-    if ((*semaphore_ptr = sem_open("/my_semaphore", O_CREAT, 0660, 0))
-				== SEM_FAILED) {
-        perror(SEM_ERROR);
-        exit(1);
-    }
-}
 
-
-void
-close_semaphore (sem_t **semaphore_ptr) {
-    sem_unlink("/my_semaphore");
-    sem_close(*semaphore_ptr);
-}
