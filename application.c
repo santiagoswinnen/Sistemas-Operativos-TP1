@@ -23,8 +23,8 @@
 #define STDOUT 1
 #define STDERR 2
 #define SHMSIZE (MD5_LEN + FILENAME_MAX)
-#define ERROR_MSG "Error creating shared memory\n"
-#define SEM_ERROR "Error creating semaphore\n"
+#define ERROR_MSG "Error creating shared memory"
+#define SEM_ERROR "Error creating semaphore"
 #define SLEEP_TIME 15
 
 
@@ -39,7 +39,7 @@ application_main (int file_amount, char **files) {
     sem_t *sem;
     FILE * results_fp = fopen("./results.txt", "a");
     unsigned int results_fd = fileno(results_fp);
-    char * separator = "------------------------------------\n";
+    char * separator = "-----------------------------------------\n";
     
     printf("Application PID: %d\n", parent_pid);
     
@@ -148,7 +148,10 @@ manage_children (int file_amount, int slave_amount, char **files,
                         if (message_length != 0) {
 
                             write_to_md5(md5,pipe_content,md5_index,message_length);
-                            send_data_to_vista(shm_address,sem,md5,md5_index,file_amount,folder_count);
+                            if(*shm_address == 1)
+                                send_data_to_vista(shm_address,sem,md5,md5_index,file_amount,folder_count);
+                            else
+                                printf("%s\n", md5[md5_index]);
                             md5_index++;
 
                         } else {

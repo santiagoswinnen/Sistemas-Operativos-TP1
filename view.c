@@ -49,7 +49,7 @@ int main(int argc, char * argv[]) {
 	            
 	            break;
 	        default:
-	            perror("Invalid reading of shared memory\n");
+	            perror("Invalid reading of shared memory");
 	            exit(1);
 	    }
 	}
