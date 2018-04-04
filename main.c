@@ -7,7 +7,7 @@ int main(int argc, char * argv[]) {
     if (argc <= 1)
     	return 0;
 
-    ret = applicationMain(argc - 1, argv + 1);
-    
+    ret = application_main(argc - 1, argv + 1);
+
     return ret;
 }

@@ -42,14 +42,14 @@ int main(int argc, char * argv []) {
 
             if (bytes_read != 0) {
               md5 = md5hash(pipe_data, bytes_read);
-              writePipe(outgoing_pipe_fd, md5);
+              write_pipe(outgoing_pipe_fd, md5);
             } else {
-              writePipe(outgoing_pipe_fd, "");
+              write_pipe(outgoing_pipe_fd, "");
             }
-        } else if (bytes_read == 0)
+        } else if (bytes_read == 0) {
             end_signal_received=TRUE;
         }
-    } while(!end_signal_received);
+    } while (!end_signal_received);
 
     close(incoming_pipe_fd);
     close(outgoing_pipe_fd);

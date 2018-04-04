@@ -72,8 +72,8 @@ application_main (int file_amount, char **files) {
     manage_children(file_amount, slave_amount, files, outgoing_pipes_fd,
         incoming_pipes_fd, shm_address, parent_pid, sem);
 
-    closePipes(incoming_pipes_fd, slave_amount);
-    closePipes(outgoing_pipes_fd, slave_amount);
+    close_pipes(incoming_pipes_fd, slave_amount);
+    close_pipes(outgoing_pipes_fd, slave_amount);
 
     free_resources(outgoing_pipe_names, slave_amount);
     free_resources(incoming_pipe_names, slave_amount);
@@ -204,8 +204,6 @@ manage_children (int file_amount, int slave_amount, char **files,
     close_semaphore(&sem);
     clean_shm(key);
     free_resources(md5, md5_index);
-
-    return 0;
 }
 
 
