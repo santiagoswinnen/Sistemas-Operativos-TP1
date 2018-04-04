@@ -1,10 +1,14 @@
+#ifndef VIEW_H
+#define VIEW_H
+
 #include <semaphore.h>
 
+#define MD5_SIZE 32
+#define SHM_SIZE (MD5_SIZE + FILENAME_MAX)
+#define ERROR_MSG "Error connecting to shared memory\n"
 
-#define MD5SIZE 32
-#define SHMSIZE (MD5SIZE + FILENAME_MAX)
-#define ERROR_MSG "Error connecting to shared memory"
+char *get_shared_memory (key_t key);
+void open_semaphore (sem_t **semaphore_ptr);
+void close_semaphore (sem_t **semaphore_ptr);
 
-char * getSharedMemory(key_t key);
-void openSemaphore(sem_t ** semaphorePtr );
-void closeSemaphore(sem_t ** semaphorePtr);
+#endif

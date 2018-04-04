@@ -11,80 +11,79 @@
 #include "vista.h"
 #include <sys/param.h>
 
-#define SEM_ERRORM "Error creating semaphore"
+#define SEM_ERROR "Error creating semaphore"
 
 int main(int argc, char * argv[]) {
-
 	pid_t app_pid;
-	char * shm_address;
-	sem_t * sem;
+	char *shm_address;
+	sem_t *sem;
 
-	if(argc != 2) {
-		printf("Vista process expects parents pid as parameter");
+	if (argc != 2) {
+		printf("View process expects parent's pid as parameter\n");
 		exit(1);
 	}
 
-	//Application process id will be used as key to create memory
+	// Application pid will be used as key to create shared memory.
 	app_pid = atoi(argv[1]);
 
-	printf("Connected to Application Process with ID: %d", app_pid);
+	printf("Connected to Application process with ID: %d\n\n",
+		app_pid);
 
-	shm_address = getSharedMemory(app_pid);
-	openSemaphore(&sem);
+	shm_address = get_shared_memory(app_pid);
+	open_semaphore(&sem);
 
-	//Connect with application process
+	//Connect with Application process.
 	*shm_address = 1;
 
-	while(*shm_address)	{
-
-	    switch( *(shm_address + 1)) {
-
+	while (*shm_address) {
+	    switch (*(shm_address + 1)) {
 	        case 1:
-	            printf("%s\n",shm_address + 2);
-	            * (shm_address + 1) = 0;
+	            printf("%s\n", shm_address + 2);
+	            *(shm_address + 1) = 0;
 	            sem_post(sem);
 	            break;
 	        case 0:
 	            sem_wait(sem);
 	            break;
 	        default:
-	            perror("Invalid reading of shared memory");
+	            perror("Invalid reading of shared memory\n");
 	            exit(1);
 	    }
-
 	}
 
 	return 0;
 }
 
-char * getSharedMemory(key_t key) {
 
-	int shmid;
-	char * address;
+char *
+get_shared_memory (key_t key) {
+	int shm_id;
+	char *address;
 
-	if ((shmid = shmget(key,SHMSIZE,0666)) < 0) {
+	if ((shm_id = shmget(key, SHM_SIZE, 0666)) < 0) {
 		perror(ERROR_MSG);
 		exit(1);
 	}
 
-
-	if ((address = shmat(shmid,NULL,0)) == (char *) -1) {
+	if ((address = shmat(shm_id, NULL, 0)) == (char *)-1)
 		perror(ERROR_MSG);
 
-	}
 	return address;
 }
 
-void openSemaphore(sem_t ** semaphorePtr ) {
 
-    if((*semaphorePtr = sem_open("/my_semaphore", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        perror(SEM_ERRORM);
+void
+open_semaphore (sem_t **semaphore_ptr ) {
+    if ((*semaphore_ptr = sem_open("/my_semaphore", O_CREAT, 0660, 0))
+		== SEM_FAILED) {
+        perror(SEM_ERROR);
         exit(1);
     }
 }
 
-void closeSemaphore(sem_t ** semaphorePtr) {
 
+void
+close_semaphore (sem_t **semaphore_ptr) {
     sem_unlink("/my_semaphore");
-    sem_close(*semaphorePtr);
+    sem_close(*semaphore_ptr);
 }
