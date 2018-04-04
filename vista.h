@@ -1,5 +1,5 @@
-#include <sys/param.h>
-#include <bits/semaphore.h>
+#include <semaphore.h>
+
 
 #define MD5SIZE 32
 #define SHMSIZE (MD5SIZE + FILENAME_MAX)

@@ -8,15 +8,14 @@
 #include <sys/shm.h>
 #include <sys/ipc.h>
 #include <fcntl.h>
-#include <semaphore.h>
 #include "vista.h"
+#include <sys/param.h>
 
 #define SEM_ERRORM "Error creating semaphore"
 
 int main(int argc, char * argv[]) {
 
 	pid_t app_pid;
-	key_t key;
 	char * shm_address;
 	sem_t * sem;
 
@@ -28,7 +27,7 @@ int main(int argc, char * argv[]) {
 	//Application process id will be used as key to create memory
 	app_pid = atoi(argv[1]);
 
-	printf("Connected to Application Process with ID: %d",app_pid);
+	printf("Connected to Application Process with ID: %d", app_pid);
 
 	shm_address = getSharedMemory(app_pid);
 	openSemaphore(&sem);
@@ -45,7 +44,7 @@ int main(int argc, char * argv[]) {
 	            * (shm_address + 1) = 0;
 	            sem_post(sem);
 	            break;
-	        case 0:                      
+	        case 0:
 	            sem_wait(sem);
 	            break;
 	        default:
@@ -62,8 +61,8 @@ char * getSharedMemory(key_t key) {
 
 	int shmid;
 	char * address;
-	
-	if (shmid = shmget(key,SHMSIZE,0666) < 0) {
+
+	if ((shmid = shmget(key,SHMSIZE,0666)) < 0) {
 		perror(ERROR_MSG);
 		exit(1);
 	}
@@ -78,7 +77,7 @@ char * getSharedMemory(key_t key) {
 
 void openSemaphore(sem_t ** semaphorePtr ) {
 
-    if((*semaphorePtr = sem_open("/Custom/semaphore", O_CREAT, 0666, 0)) == SEM_FAILED) {
+    if((*semaphorePtr = sem_open("/my_semaphore", O_CREAT, 0660, 0)) == SEM_FAILED) {
         perror(SEM_ERRORM);
         exit(1);
     }
@@ -86,6 +85,6 @@ void openSemaphore(sem_t ** semaphorePtr ) {
 
 void closeSemaphore(sem_t ** semaphorePtr) {
 
-    sem_unlink("/Custom/semaphore");
+    sem_unlink("/my_semaphore");
     sem_close(*semaphorePtr);
 }

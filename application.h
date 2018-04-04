@@ -1,10 +1,14 @@
+#include <semaphore.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
 #include <sys/types.h>
-#include <bits/semaphore.h>
+
 
 int applicationMain(int fileNum,char ** files);
-void manageChildren(int fileNum, int slaveNumber, char ** files, int * pipesFd, int * returningPipesFd,char * shm_address,key_t key,sem_t * sem);
-void createSlaves(int parentPid, int slaveNumber, char ** outgoingPipeNames, char ** incomingPipeNames,
-                  int * outgoingFds, int * incomingFds);
+void manageChildren(int fileNum, int slaveNumber, char ** files, int * pipesFd,
+  int * returningPipesFd,char * shm_address,key_t key,sem_t * sem);
+void createSlaves(int parentPid, int slaveNumber, char ** outgoingPipeNames,
+  char ** incomingPipeNames, int * outgoingFds, int * incomingFds);
 int biggestDescriptor(const int * descriptors, int length);
 int isFile(const char* file);
 
