@@ -23,6 +23,9 @@
 #define SLAVE_NUM 1
 #define CHAR 1
 #define INT 1
+#define STDIN 0
+#define STDOUT 1
+#define STDERR 2
 #define SHMSIZE (MD5_LEN + FILENAME_MAX)
 #define ERROR_MSG "Error creating shared memory\n"
 #define SEM_ERROR "Error creating semaphore\n"
@@ -38,6 +41,16 @@ application_main (int file_amount, char **files) {
     char *shm_address;
     pid_t parent_pid = getpid();
     sem_t *sem;
+    FILE * results_fp = fopen("./results.txt", "a");
+    unsigned int results_fd = fileno(results_fp);
+    char * separator = "------------------------------------\n";
+    
+    printf("Application PID: %d\n", parent_pid);
+    
+    dup2(results_fd, STDOUT);
+    dup2(results_fd, STDERR);
+    printf("%s", separator);
+
     // Remove previously created memory
     // clean_shm(parent_pid);
     // Create shared memory
@@ -71,14 +84,14 @@ application_main (int file_amount, char **files) {
 
     manage_children(file_amount, slave_amount, files, outgoing_pipes_fd,
         incoming_pipes_fd, shm_address, parent_pid, sem);
-
-    close_pipes(incoming_pipes_fd, slave_amount);
-    close_pipes(outgoing_pipes_fd, slave_amount);
+    close_pipes(incoming_pipes_fd, incoming_pipe_names, slave_amount);
+    close_pipes(outgoing_pipes_fd, outgoing_pipe_names, slave_amount);
 
     free_resources(outgoing_pipe_names, slave_amount);
     free_resources(incoming_pipe_names, slave_amount);
     free(incoming_pipes_fd);
     free(outgoing_pipes_fd);
+    fclose(results_fp);
 
     return 0;
 }
@@ -182,11 +195,12 @@ void writeToMD5(char ** md5, char * pipe_content, int md5_index, size_t message_
 
 void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index) {
 
+
     switch(*(shm_address+1) ) {
                                 
     case 0:
         clear_buffer_memory(shm_address);
-        printf("MD5: %s\n", md5[md5_index]);
+        printf("%s\n", md5[md5_index]);
         memcpy(shm_address + 2, md5[md5_index], strlen(md5[md5_index]) + 1);
         *(shm_address + 1) = 1;
         sem_post(sem);

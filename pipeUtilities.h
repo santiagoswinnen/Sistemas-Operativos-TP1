@@ -6,7 +6,7 @@
 
 void write_pipe (int fd, char * file);
 char *number_to_three_digit_array (size_t num);
-void close_pipes (int * fds, int amount);
+void close_pipes (int * fds, char ** names, int amount);
 void free_resources (char **array, int size);
 void end_slaves (int *fds, int amount);
 char **generate_outgoing_pipe_names (int slaves);

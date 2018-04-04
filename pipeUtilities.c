@@ -38,9 +38,11 @@ number_to_three_digit_array (size_t num) {
 }
 
 void
-close_pipes (int *fds, int amount) {
-    for(int i = 0; i < amount; i++)
+close_pipes (int *fds, char ** names, int amount) {
+    for(int i = 0; i < amount; i++) {
         close(fds[i]);
+        unlinkat(AT_FDCWD, names[i], 0);
+    }
 }
 
 

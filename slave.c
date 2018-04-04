@@ -12,6 +12,8 @@
 #define MAX_FILENAME 255
 #define READ_END 0
 #define WRITE_END 1
+#define STDIN 0
+#define STDOUT 1
 #define MD5_BYTES 32
 
 int main(int argc, char * argv []) {
@@ -71,14 +73,14 @@ md5hash (char *file_name, int length) {
 
     if ((pid = fork()) == 0) {
         close(fds[READ_END]);
-        dup2(fds[WRITE_END], 1); // 1 == stdout
+        dup2(fds[WRITE_END], STDOUT);
         char *args[3] = {"md5sum", file_name, NULL};
         execvp("md5sum", args);
         perror("Could not run md5sum.\n");
     }
 
     close(fds[WRITE_END]);
-    dup2(fds[READ_END], 0); // 0 == stdin
+    dup2(fds[READ_END], STDIN);
     while (wait(&status) > 0);
     read = scanf("%s  %s", md5 + length + 4, md5 + 1);
 
