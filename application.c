@@ -156,7 +156,6 @@ manage_children (int file_amount, int slave_amount, char **files,
                         if (message_length != 0) {
 
                             writeToMD5(md5,pipe_content,md5_index,message_length);
-                            md5_index++;
                             sendDataToVista(shm_address,sem,md5,md5_index,file_amount,folder_count);
 
                         } else {
@@ -189,8 +188,8 @@ manage_children (int file_amount, int slave_amount, char **files,
 void writeToMD5(char ** md5, char * pipe_content, int md5_index, size_t message_length) {
 
     md5[md5_index] = malloc((message_length + 1)* sizeof(char));
-    strcpy(md5[md5_index], pipe_content);
-    md5[md5_index][message_length] = 0;
+     strcpy(md5[md5_index++], pipe_content); 
+    md5[md5_index - 1][message_length] = 0; 
 
 }
 
@@ -211,8 +210,6 @@ void sendDataToVista(char * shm_address, sem_t * sem, char ** md5, int md5_index
             sem_wait(sem);
         else {
            *(shm_address + 1) = 0;
-            if((md5_index + folder_count + 1 == file_amount))
-                sem_post(sem);
         }
         break;
     default:
