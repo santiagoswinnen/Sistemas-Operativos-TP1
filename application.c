@@ -25,7 +25,9 @@
 #define SHMSIZE (MD5_LEN + FILENAME_MAX)
 #define ERROR_MSG "Error creating shared memory"
 #define SEM_ERROR "Error creating semaphore"
-#define SLEEP_TIME 10
+#define SLEEP_TIME 8
+#define _VIEW 1
+#define _APP 0
 
 
 int
@@ -33,7 +35,7 @@ application_main (int file_amount, char **files) {
     int slave_amount;
     char **outgoing_pipe_names, **incoming_pipe_names;
     int *outgoing_pipes_fd, *incoming_pipes_fd;
-    char *shm_address;
+    char *shm_address, *process_open_atm, *process_using_shm;
     pid_t parent_pid = getpid();
     sem_t *sem;
     FILE *results_fp = fopen("./results.txt", "a");
@@ -47,8 +49,11 @@ application_main (int file_amount, char **files) {
     printf("%s", separator);
 
     shm_address = create_shared_memory(parent_pid);
-    *shm_address = 0;
-    *(shm_address + 1) = 0;
+    process_open_atm = shm_address;
+	process_using_shm = shm_address + 1;
+    *process_open_atm = _APP;
+    *process_using_shm = _APP;
+
     open_semaphore(&sem);
 
     sleep(SLEEP_TIME);
@@ -59,11 +64,12 @@ application_main (int file_amount, char **files) {
     slave_amount = (file_amount > SLAVE_NUM) ? SLAVE_NUM : file_amount;
     outgoing_pipe_names = generate_outgoing_pipe_names(slave_amount);
     incoming_pipe_names = generate_incoming_pipe_names(slave_amount);
-    if((outgoing_pipes_fd = malloc(slave_amount * sizeof(int))) == NULL) {
+    if ((outgoing_pipes_fd = malloc(slave_amount * sizeof(int))) == NULL) {
         perror("Memory could not be allocated");
         exit(1);
     }
-    if((incoming_pipes_fd = malloc(slave_amount * sizeof(int))) == NULL) {
+
+    if ((incoming_pipes_fd = malloc(slave_amount * sizeof(int))) == NULL) {
         perror("Memory could not be allocated");
         exit(1);
     }
@@ -124,12 +130,14 @@ manage_children (int file_amount, int slave_amount, char **files,
     int nfds = biggest_descriptor(incoming_pipes_fd, slave_amount);
     int select_ret;
     char *file_to_write;
+    char *process_open_atm = shm_address;
     fd_set readfds;
 
-    if((md5 = malloc(file_amount * sizeof(char *))) == NULL) {
+    if ((md5 = malloc(file_amount * sizeof(char *))) == NULL) {
         perror("Memory could not be allocated");
         exit(1);
     }
+
     while (md5_index + folder_count < file_amount) {
 
         FD_ZERO(&readfds);
@@ -158,7 +166,7 @@ manage_children (int file_amount, int slave_amount, char **files,
                         if (message_length != 0) {
                             write_to_md5(md5, pipe_content, md5_index,
                                 message_length);
-                            if (*shm_address == 1)
+                            if (*process_open_atm == _VIEW)
                                 send_data_to_view(shm_address, sem, md5,
                                     md5_index, file_amount, folder_count);
                             else
@@ -185,7 +193,7 @@ manage_children (int file_amount, int slave_amount, char **files,
 
     end_slaves(outgoing_pipes_fd, slave_amount);
 
-    disconnect_view_process(shm_address, sem);
+    disconnect_view_process(process_open_atm, sem);
 
     close_semaphore(&sem);
     clean_shm(key);
@@ -203,22 +211,27 @@ write_to_md5 (char **md5, char *pipe_content, int md5_index,
 void
 send_data_to_view (char *shm_address, sem_t *sem, char **md5, int md5_index,
     int file_amount, int folder_count) {
-    switch (*(shm_address + 1) ) {
-        case 0:
+    char *process_open_atm, *process_using_shm;
+
+    process_open_atm = shm_address;
+    process_using_shm = shm_address + 1;
+
+    switch (*process_using_shm) {
+        case _APP:
             clear_buffer_memory(shm_address);
             printf("%s\n", md5[md5_index]);
             memcpy(shm_address + 2, md5[md5_index], strlen(md5[md5_index]) + 1);
-            *(shm_address + 1) = 1;
+            *process_using_shm = _VIEW;
             sem_post(sem);
-
             break;
+
         case 1:
-            if (*(shm_address))
+            if (*process_open_atm == _VIEW)
                 sem_wait(sem);
             else
-               *(shm_address + 1) = 0;
-
+               *process_using_shm = _APP;
             break;
+
         default:
             perror("Invalid reading of shared memory");
             exit(1);
@@ -227,10 +240,12 @@ send_data_to_view (char *shm_address, sem_t *sem, char **md5, int md5_index,
 
 
 void
-disconnect_view_process (char *shm_address, sem_t *sem) {
-    if (*shm_address) {
-        *shm_address = 0;
-        *(shm_address + 1) = 0;
+disconnect_view_process (char *process_open_atm, sem_t *sem) {
+    char * process_using_shm = process_open_atm + 1;
+
+    if (*process_open_atm == _VIEW) {
+        *process_open_atm = _APP;
+        *process_using_shm = _APP;
         sem_post(sem);
     }
 }
@@ -276,7 +291,7 @@ clear_buffer_memory (char *address) {
 
 char *
 create_shared_memory (key_t key) {
-    char * shm_address;
+    char *shm_address;
     int shm_id;
 
     if ((shm_id = shmget(key, SHMSIZE, 0666 | IPC_CREAT | IPC_EXCL )) < 0) {

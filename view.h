@@ -10,5 +10,6 @@
 char *get_shared_memory (key_t key);
 void open_semaphore (sem_t **semaphore_ptr);
 void close_semaphore (sem_t **semaphore_ptr);
+int is_number (char *s);
 
 #endif
