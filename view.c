@@ -20,6 +20,7 @@
 
 
 int main(int argc, char * argv[]) {
+
 	pid_t app_pid;
 	char *shm_address, *process_open_atm, *process_using_shm;
 	sem_t *sem;
@@ -66,6 +67,7 @@ int main(int argc, char * argv[]) {
 
 char *
 get_shared_memory (key_t key) {
+
 	int shm_id;
 	char *address;
 

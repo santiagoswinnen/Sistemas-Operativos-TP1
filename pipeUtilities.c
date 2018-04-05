@@ -9,6 +9,7 @@
 
 void
 write_pipe (int fd, char * file) {
+
     size_t message_length = strlen(file);
     char * length_in_chars = number_to_three_digit_array(message_length);
     int bytes_written = 0;
@@ -44,6 +45,7 @@ number_to_three_digit_array (size_t num) {
 
 void
 close_pipes (int *fds, char ** names, int amount) {
+
     for(int i = 0; i < amount; i++) {
         close(fds[i]);
         unlinkat(AT_FDCWD, names[i], 0);
@@ -53,6 +55,7 @@ close_pipes (int *fds, char ** names, int amount) {
 
 void
 free_resources (char **array, int size ) {
+
     for (int i = 0; i < size; i++)
         free(array[i]);
 
@@ -62,6 +65,7 @@ free_resources (char **array, int size ) {
 
 void
 end_slaves (int *fds, int amount) {
+
     char *endMessage;
 
     if((endMessage = malloc(sizeof(char))) == NULL) {
@@ -82,6 +86,7 @@ end_slaves (int *fds, int amount) {
 void
 create_double_pipe (char *outgoing_pipe_name, char * incoming_pipe_name,
     int *outgoing_fds, int *incoming_fds, int index) {
+
     int mkfifo_ret[2];
 
     mkfifo_ret[0] = mkfifo(outgoing_pipe_name, 0777);
@@ -104,6 +109,7 @@ create_double_pipe (char *outgoing_pipe_name, char * incoming_pipe_name,
 
 char **
 generate_outgoing_pipe_names (int slaves_amount) {
+
     char pipe_name [7] = "pipe";
     char ** ret;
 
@@ -129,6 +135,7 @@ generate_outgoing_pipe_names (int slaves_amount) {
 
 char **
 generate_incoming_pipe_names (int slaves_amount) {
+
     char pipe_name[10] = "retPipe";
     char ** ret;
 

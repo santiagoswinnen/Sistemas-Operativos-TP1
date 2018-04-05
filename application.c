@@ -32,6 +32,7 @@
 
 int
 application_main (int file_amount, char **files) {
+
     int slave_amount;
     char **outgoing_pipe_names, **incoming_pipe_names;
     int *outgoing_pipes_fd, *incoming_pipes_fd;
@@ -119,6 +120,7 @@ void
 manage_children (int file_amount, int slave_amount, char **files,
     int *outgoing_pipes_fd, int *incoming_pipes_fd, char *shm_address, key_t key,
     sem_t *sem) {
+
     ssize_t bytes_read;
     size_t message_length;
     int i;
@@ -128,7 +130,6 @@ manage_children (int file_amount, int slave_amount, char **files,
     char **md5;
     int md5_index = 0, folder_count = 0;
     int nfds = biggest_descriptor(incoming_pipes_fd, slave_amount);
-    int select_ret;
     char *file_to_write;
     char *process_open_atm = shm_address;
     fd_set readfds;
@@ -139,6 +140,7 @@ manage_children (int file_amount, int slave_amount, char **files,
     }
 
     while (md5_index + folder_count < file_amount) {
+        int select_ret;
 
         FD_ZERO(&readfds);
 
@@ -149,8 +151,11 @@ manage_children (int file_amount, int slave_amount, char **files,
 
         if (select_ret == -1) {
             perror("Error at select function");
+
         } else if (select_ret > 0){
+
             for (i = 0; i < slave_amount; i++) {
+
                 if (FD_ISSET(incoming_pipes_fd[i], &readfds) &&
                     ((bytes_read = read(incoming_pipes_fd[i], length_read, 3))
                     >= 0)) {
@@ -166,6 +171,7 @@ manage_children (int file_amount, int slave_amount, char **files,
                         if (message_length != 0) {
                             write_to_md5(md5, pipe_content, md5_index,
                                 message_length);
+
                             if (*process_open_atm == _VIEW)
                                 send_data_to_view(shm_address, sem, md5,
                                     md5_index, file_amount, folder_count);
@@ -203,6 +209,7 @@ manage_children (int file_amount, int slave_amount, char **files,
 void
 write_to_md5 (char **md5, char *pipe_content, int md5_index,
     size_t message_length) {
+
     md5[md5_index] = malloc((message_length + 1) * sizeof(char));
     strcpy(md5[md5_index], pipe_content);
     md5[md5_index][message_length] = 0;
@@ -211,6 +218,7 @@ write_to_md5 (char **md5, char *pipe_content, int md5_index,
 void
 send_data_to_view (char *shm_address, sem_t *sem, char **md5, int md5_index,
     int file_amount, int folder_count) {
+
     char *process_open_atm, *process_using_shm;
 
     process_open_atm = shm_address;
@@ -241,6 +249,7 @@ send_data_to_view (char *shm_address, sem_t *sem, char **md5, int md5_index,
 
 void
 disconnect_view_process (char *process_open_atm, sem_t *sem) {
+
     char * process_using_shm = process_open_atm + 1;
 
     if (*process_open_atm == _VIEW) {
@@ -253,6 +262,7 @@ disconnect_view_process (char *process_open_atm, sem_t *sem) {
 
 int
 is_file (const char *file) {
+
     struct stat buf;
 
     stat(file, &buf);
@@ -263,6 +273,7 @@ is_file (const char *file) {
 
 int
 biggest_descriptor (const int *descriptors, int length) {
+
     int biggest = 0;
 
     for (int i = 0 ; i < length; i++)
@@ -275,6 +286,7 @@ biggest_descriptor (const int *descriptors, int length) {
 
 void
 clean_shm (key_t key) {
+
     char str[100];
 
     sprintf(str,"ipcrm -M %d", (int)key);
@@ -284,6 +296,7 @@ clean_shm (key_t key) {
 
 void
 clear_buffer_memory (char *address) {
+
     for (int i = 2 ; i < SHMSIZE ; i++)
         *((char *)(address + i)) = 0;
 }
@@ -291,6 +304,7 @@ clear_buffer_memory (char *address) {
 
 char *
 create_shared_memory (key_t key) {
+
     char *shm_address;
     int shm_id;
 

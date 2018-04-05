@@ -18,12 +18,12 @@
 #define SYMBOLS 6
 
 int main(int argc, char * argv []) {
+
     int incoming_pipe_fd;
     int outgoing_pipe_fd;
     char pipe_data[MAX_FILENAME];
     char length_read[4];
     char *md5 = NULL;
-    int bytes_read;
     int end_signal_received = FALSE;
     size_t bytes_to_read;
     char *incoming_pipe_name = argv[1];
@@ -33,7 +33,7 @@ int main(int argc, char * argv []) {
     outgoing_pipe_fd = open(outgoing_pipe_name, O_WRONLY);
 
     do {
-        bytes_read = (int)read(incoming_pipe_fd, length_read, 3);
+        int bytes_read = (int)read(incoming_pipe_fd, length_read, 3);
         length_read[bytes_read] = 0;
 
         if ((bytes_read == 1) && (pipe_data[0] == ':')) {
@@ -63,6 +63,7 @@ int main(int argc, char * argv []) {
 
 char *
 md5hash (char *file_name, int length) {
+
     pid_t pid;
     int status;
     int read;
@@ -76,7 +77,7 @@ md5hash (char *file_name, int length) {
     }
     pipe(fds);
 
-    if ((pid = fork()) == 0) {
+    if (fork() == 0) {
         close(fds[READ_END]);
         dup2(fds[WRITE_END], STDOUT);
         char *args[3] = {"md5sum", file_name, NULL};
