@@ -63,8 +63,7 @@ int main(int argc, char * argv []) {
 
 char *
 md5hash (char *file_name, int length) {
-
-    pid_t pid;
+    
     int status;
     int read;
     int size = length + MD5_BYTES + SYMBOLS;
@@ -88,7 +87,7 @@ md5hash (char *file_name, int length) {
     close(fds[WRITE_END]);
     dup2(fds[READ_END], STDIN);
     while (wait(&status) > 0);
-    read = scanf("%s  %s", md5 + length + 4, md5 + 1);
+    read = scanf("%32s  %215s", md5 + length + 4, md5 + 1);
 
     if (read <= 0) {
         strcpy(md5, "md5sum failed\n");
